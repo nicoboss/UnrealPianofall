@@ -4,23 +4,23 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "PianoActor.generated.h"
+#include "BlockGenerator.generated.h"
 
 UCLASS()
-class UNREALPIANOFALL_API APianoActor : public AActor
+class UNREALPIANOFALL_API ABlockGenerator : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
-	APianoActor();
+	ABlockGenerator();
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
+
 };
