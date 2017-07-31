@@ -15,6 +15,11 @@ public:
 	// Sets default values for this actor's properties
 	ABlockGenerator();
 
+	FLinearColor rainbow[128];
+	uint32 FrameNr;
+	UStaticMesh* Block_Mesh;
+	UMaterial* Block_Material;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

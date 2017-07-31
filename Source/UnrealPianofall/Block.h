@@ -23,9 +23,10 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere)
-	class UBoxComponent* TriggerVolume;
-
+	FString name;
+	int32 npos;
+	int32 NoteNr;
+	UMaterialInstanceDynamic* DynMaterial;
+	USceneComponent* BlockRoot;
 	UStaticMeshComponent* MeshComp;
-	UMaterial* StoredMaterial;
 };

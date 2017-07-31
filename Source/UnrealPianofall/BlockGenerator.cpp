@@ -20,6 +20,32 @@ ABlockGenerator::ABlockGenerator()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> FoundMesh(TEXT("/Engine/EditorMeshes/EditorCube.EditorCube"));
+	static ConstructorHelpers::FObjectFinder<UMaterial> FoundMaterial(TEXT("/Game/UnrealPianofall/Materials/M_Advanced_Block"));
+
+	Block_Mesh = FoundMesh.Object;
+	Block_Material = FoundMaterial.Object;
+
+	FrameNr = 0;
+
+	for (int i = 0; i < 22; ++i) { //green up
+		rainbow[i] = { 255.0f, i*0.04545454545f, 0.0f };
+	}
+	for (int i = 22; i < 43; ++i) { //red down
+		rainbow[i] = { 1.0f - ((i - 22)*0.04761904761f), 255.0f, 0.0f };
+	}
+	for (int i = 43; i < 64; ++i) { //blue up
+		rainbow[i] = { 0.0f, 1.0f, (i - 43)*0.04761904761f };
+	}
+	for (int i = 64; i < 85; ++i) { //green down
+		rainbow[i] = { 0.0f, 1.0f - ((i - 64)*0.04761904761f), 255.0f };
+	}
+	for (int i = 85; i < 106; ++i) { //reed up
+		rainbow[i] = { (i - 85)*0.04761904761f, 0.0f, 255.0f };
+	}
+	for (int i = 106; i < 128; ++i) { //blue down
+		rainbow[i] = { 255.0f, 0.0f, 1.0f - ((i - 106)*0.04545454545f) };
+	}
 
 }
 
@@ -49,7 +75,8 @@ void ABlockGenerator::BeginPlay()
 		}
 		UE_LOG(LogTemp, Log, TEXT("PPQ: %u"), PPQ);
 		uint32 usPQ = 500000; //120 PBM
-	} else {
+	}
+	else {
 		UE_LOG(LogTemp, Warning, TEXT("MIDI-File: Invalid header"));
 		UE_LOG(LogTemp, Error, TEXT("Invalid MIDI-file!"));
 	}
@@ -80,8 +107,7 @@ void ABlockGenerator::BeginPlay()
 				} else {
 					if (buf[i] == MTrk[0]) {
 						MTrk_findpos = 1;
-					}
-					else {
+					} else {
 						MTrk_findpos = 0;
 					}
 				}
@@ -101,15 +127,19 @@ void ABlockGenerator::BeginPlay()
 void ABlockGenerator::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	++FrameNr;
+
 	int32 notenr_rnd;
-	
-	//for (int i = 0; i < 1000; ++i) {
-	notenr_rnd = (int32)FMath::RandRange(0.0f, 255.0f);
-	FVector location = FVector((float)(-6400 + notenr_rnd * 100), 0.0f, 4000.0f);
+
+	//for (int i = 0; i < 100; ++i) {
+	notenr_rnd = (uint8)FMath::RandRange(0.0f, 127.0f);
+	FVector location = FVector((float)(6400 - notenr_rnd * 100), 0.0f, 4000.0f);
 	FRotator rotate = FRotator(0.0f, 0.0f, 0.0f);
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	GetWorld()->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
+	SpawnInfo.Owner = this;
+	SpawnInfo.Name = *FString::Printf(TEXT("F%uN%u"), FrameNr, notenr_rnd);
+	AActor* newBlock = GetWorld()->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
 	//}
 
 
