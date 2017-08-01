@@ -26,7 +26,7 @@ void ABlock::BeginPlay()
 	name = this->GetName();
 	name.FindChar('N', npos);
 	NoteNr = FCString::Atoi(*name.RightChop(npos + 1));
-	UE_LOG(LogTemp, Log, TEXT("%d"), NoteNr);
+	//UE_LOG(LogTemp, Log, TEXT("%d"), NoteNr);
 
 	DynMaterial = UMaterialInstanceDynamic::Create(AOwner->Block_Material, NULL);
 	DynMaterial->SetVectorParameterValue(FName("Color"), AOwner->rainbow[NoteNr]);

@@ -8,8 +8,9 @@
 #include "Runtime/Engine/Public/ImageUtils.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include <iostream>
-#include <fstream>
 #include <vector>
+#include <array>
+#include <fstream>
 #include "Block.h"
 
 //int viewStats = 0;
@@ -25,6 +26,10 @@ ABlockGenerator::ABlockGenerator()
 
 	Block_Mesh = FoundMesh.Object;
 	Block_Material = FoundMaterial.Object;
+
+	std::array<uint32, 128> testArray = {};
+	testArray[77] = 777;
+	spawnpos.push_back(testArray); //Copy testArray into spawnpos
 
 	FrameNr = 0;
 
@@ -55,8 +60,6 @@ void ABlockGenerator::BeginPlay()
 	Super::BeginPlay();
 
 	std::ifstream midifile("A:\\Music\\britney_spears-born_to_make_you_happy.mid", std::ios::binary);
-
-	std::vector<std::vector<uint32>> vecArray;
 
 	char header[14];
 	midifile.read(header, 14);
@@ -126,6 +129,7 @@ void ABlockGenerator::BeginPlay()
 // Called every frame
 void ABlockGenerator::Tick(float DeltaTime)
 {
+	//UE_LOG(LogTemp, Log, TEXT("spawnpos[0][77]: %u"), spawnpos[0][77]);
 	Super::Tick(DeltaTime);
 	++FrameNr;
 

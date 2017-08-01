@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include <vector>
+#include <array>
 #include "BlockGenerator.generated.h"
 
 UCLASS()
@@ -15,6 +17,7 @@ public:
 	// Sets default values for this actor's properties
 	ABlockGenerator();
 
+	std::vector<std::array<uint32, 128>> spawnpos;
 	FLinearColor rainbow[128];
 	uint32 FrameNr;
 	UStaticMesh* Block_Mesh;
