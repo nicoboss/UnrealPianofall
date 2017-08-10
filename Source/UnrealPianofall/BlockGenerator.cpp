@@ -65,35 +65,36 @@ void ABlockGenerator::BeginPlay()
 	std::ifstream midifile("A:\\Music\\la_isla_bonita.mid", std::ios::binary); //Huge amount of errors
 	//std::ifstream midifile("A:\\Music\\05ClassExample60bpm.mid", std::ios::binary); //No errors
 
-	uint16 PPQ;
+	uint16 PPQ; //Remember: Never reset this between MTrks
 	uint32 usPQ = 500000; //120 PBM
 
 	uint8 Length_len = 0;
 	uint32 MTrk_len = 0;
 
+	uint8 running_status = 0;
+
 	bool in_deltatime;
+	uint64 tick = 0;
 	uint64 time_us = 0;
 	uint32 deltatime_to_add;
 	uint8 deltatime_data_i;
 	uint8 deltatime_data_size = 0;
 	uint8 deltatime_data[5] = {};
 
-	int8 Note_to_play = -1;
 	int8 Note_to_play_nr = -1;
-	int8 Note_to_stop = -1;
 	int8 Note_to_stop_nr = -1;
 
-	int8 Pressure_to_change = -1;
+	//int8 Pressure_to_change = -1;
 	int8 Pressure_note = -1;
 	uint8 Pressure_value;
-	int8 Controller_to_change = -1;
+	//int8 Controller_to_change = -1;
 	int8 Controller_type = -1;
 	uint8 Controller_value;
-	int8 Program_to_change = -1;
+	//int8 Program_to_change = -1;
 	int8 Instument_table[16] = { 0 };
-	int8 Channel_pressure_to_change = -1;
+	//int8 Channel_pressure_to_change = -1;
 	int8 Pressure_table[16] = { 0 };
-	int8 Pitch_to_change = -1;
+	//int8 Pitch_to_change = -1;
 	int8 Pitch_lsb = -1;
 	uint16 Pitch_value;
 	bool in_SysEx = false;
@@ -130,6 +131,7 @@ void ABlockGenerator::BeginPlay()
 		UE_LOG(LogTemp, Log, TEXT("Valid MIDI-file!"));
 		PPQ = (header[12] << 8) + header[13];
 		if (PPQ == 0) {
+			UE_LOG(LogTemp, Error, TEXT("Error: PPQ=0 => set to default value: 120"));
 			PPQ = 120;
 		}
 		UE_LOG(LogTemp, Log, TEXT("PPQ: %u"), PPQ);
@@ -156,23 +158,17 @@ void ABlockGenerator::BeginPlay()
 				if (buf[pos] == MTrk[MTrk_findpos]) {
 					if (++MTrk_findpos == 4) {
 						UE_LOG(LogTemp, Log, TEXT("MTrk Found!"));
-						usPQ = 500000; //120 PBM
+						tick = 0;
 						time_us = 0;
 						MTrk_findpos = 0;
 						++MTrk_nr;
 						MTrk_len = 0;
 						Length_len = 4;
+						running_status = 0;
 						deltatime_data_size = 0;
-						Note_to_play = -1;
 						Note_to_play_nr = -1;
-						Note_to_stop = -1;
 						Note_to_stop_nr = -1;
-						Pressure_to_change = -1;
-						Controller_to_change = -1;
 						Controller_type = -1;
-						Program_to_change = -1;
-						Channel_pressure_to_change = -1;
-						Pitch_to_change = -1;
 						Pitch_lsb = -1;
 						in_SysEx = false;
 						SysEx_len = -1;
@@ -214,8 +210,8 @@ void ABlockGenerator::BeginPlay()
 
 		if (MTrk_len > 0) {
 			for (; pos < 4096; ++pos) {
-				_itoa((uint8)buf[pos], hexstr, 16);
-				UE_LOG(LogTemp, Log, TEXT("MTrk_len: %u Data: %s = %d"), MTrk_len, ANSI_TO_TCHAR(hexstr), buf[pos]);
+				//_itoa((uint8)buf[pos], hexstr, 16);
+				//UE_LOG(LogTemp, Log, TEXT("MTrk_len: %u Data: %s = %d"), MTrk_len, ANSI_TO_TCHAR(hexstr), buf[pos]);
 				if (--MTrk_len == 0) {
 					UE_LOG(LogTemp, Log, TEXT("META-End!"));
 					if (in_META == false || META_type != 0x2F) {
@@ -231,12 +227,13 @@ void ABlockGenerator::BeginPlay()
 						deltatime_data[deltatime_data_size] = buf[pos];
 						deltatime_to_add = 0;
 						for (deltatime_data_i = 0; deltatime_data_i < deltatime_data_size; ++deltatime_data_i) {
-							deltatime_to_add += deltatime_data[deltatime_data_i] << ((deltatime_data_size - deltatime_data_i - 1) * 8);
+							deltatime_to_add += deltatime_data[deltatime_data_i] << ((deltatime_data_size - deltatime_data_i - 1) * 7);
 						}
+						tick += deltatime_to_add;
 						time_us += (deltatime_to_add*usPQ)/PPQ;
 						deltatime_data_size = 0;
-						UE_LOG(LogTemp, Log, TEXT("deltatime_to_add: %u"), deltatime_to_add);
-						UE_LOG(LogTemp, Log, TEXT("Time: %f"), time_us/1000000.0);
+						//UE_LOG(LogTemp, Log, TEXT("deltatime_to_add: %u"), deltatime_to_add);
+						//UE_LOG(LogTemp, Log, TEXT("Time: %f"), time_us/1000000.0);
 						in_deltatime = false;
 					}
 					continue;
@@ -263,6 +260,7 @@ void ABlockGenerator::BeginPlay()
 									usPQ = 0;
 									for (MIDI_data_i = 0; MIDI_data_i < MIDI_data_size; ++MIDI_data_i) {
 										usPQ += META_data[MIDI_data_i] << ((MIDI_data_size - MIDI_data_i - 1) * 8);
+										//UE_LOG(LogTemp, Log, TEXT("New usPQ data: %u"), META_data[MIDI_data_i]);
 									}
 									if (usPQ == 0) {
 										usPQ = 500000; //120 PBM
@@ -279,38 +277,39 @@ void ABlockGenerator::BeginPlay()
 
 				//Take a look at http://www.somascape.org/midi/tech/mfile.html to understand it
 				else if (buf[pos] >= 0b10000000) {
-					if (buf[pos] >= 0x80 && buf[pos] <= 0x8F) {
-						UE_LOG(LogTemp, Log, TEXT("NoteOFF: Channel %u"), buf[pos] - 0x80);
-						Note_to_stop = buf[pos] - 0x80;
+					if (buf[pos] <= 0x8F) {
+						//UE_LOG(LogTemp, Log, TEXT("NoteOFF: Channel %u"), buf[pos] - 0x80);
+						running_status = buf[pos];
 					}
-					else if (buf[pos] >= 0x90 && buf[pos] <= 0x9F) {
-						UE_LOG(LogTemp, Log, TEXT("NoteON: Channel %u"), buf[pos] - 0x90);
-						Note_to_play = buf[pos] - 0x90;
+					else if (buf[pos] <= 0x9F) {
+						//UE_LOG(LogTemp, Log, TEXT("NoteON: Channel %u"), buf[pos] - 0x90);
+						running_status = buf[pos];
 					}
-					else if (buf[pos] >= 0xA0 && buf[pos] <= 0xAF) {
+					else if (buf[pos] <= 0xAF) {
 						UE_LOG(LogTemp, Log, TEXT("Polyphonic Pressure: Channel %u"), buf[pos] - 0x90);
-						Pressure_to_change = buf[pos] - 0xA0;
+						running_status = buf[pos];
 					}
-					else if (buf[pos] >= 0xB0 && buf[pos] <= 0xBF) {
+					else if (buf[pos] <= 0xBF) {
 						UE_LOG(LogTemp, Log, TEXT("Controller Change: Channel %u"), buf[pos] - 0xB0);
-						Controller_to_change = buf[pos] - 0xB0;
+						running_status = buf[pos];
 					}
-					else if (buf[pos] >= 0xC0 && buf[pos] <= 0xCF) {
-						UE_LOG(LogTemp, Log, TEXT("Program Change: Channel %u"), buf[pos] - 0xC0);
-						Program_to_change = buf[pos] - 0xC0;
+					else if (buf[pos] <= 0xCF) {
+						//UE_LOG(LogTemp, Log, TEXT("Program Change: Channel %u"), buf[pos] - 0xC0);
+						running_status = buf[pos];
 					}
-					else if (buf[pos] >= 0xD0 && buf[pos] <= 0xDF) {
+					else if (buf[pos] <= 0xDF) {
 						UE_LOG(LogTemp, Log, TEXT("Channel Pressure Change: Channel %u"), buf[pos] - 0xC0);
-						Channel_pressure_to_change = buf[pos] - 0xD0;
+						running_status = buf[pos];
 					}
-					else if (buf[pos] >= 0xE0 && buf[pos] <= 0xEF) {
+					else if (buf[pos] <= 0xEF) {
 						UE_LOG(LogTemp, Log, TEXT("Pitch Bend: Channel %u"), buf[pos] - 0xC0);
-						Pitch_to_change = buf[pos] - 0xE0;
+						running_status = buf[pos];
 					}
 					else if (buf[pos] == 0xF0 || buf[pos] == 0xF7) {
 						UE_LOG(LogTemp, Log, TEXT("SysEx/EscSeq:"), buf[pos] - 0xC0);
 						SysEx_type = buf[pos];
 						in_SysEx = true;
+						running_status = 0;
 					}
 					else if (buf[pos] == 0xFF) {
 						UE_LOG(LogTemp, Log, TEXT("META-Start"));
@@ -318,78 +317,82 @@ void ABlockGenerator::BeginPlay()
 						META_len = -1;
 						META_type = -1;
 						in_META = true;
+						running_status = 0;
 					}
 					else {
-						UE_LOG(LogTemp, Log, TEXT("Error: Unknown MIDI Event %u"), buf[pos]);
+						UE_LOG(LogTemp, Error, TEXT("Error: Unknown MIDI Event %u"), buf[pos]);
+						running_status = 0;
 					}
 				}
 
 				else {
-					if (Note_to_play != -1) {
-						if (Note_to_play_nr == -1) {
-							Note_to_play_nr = buf[pos];
-							_itoa((uint8)buf[pos], hexstr, 16);
-							UE_LOG(LogTemp, Log, TEXT("NoteON: Nr: %s"), ANSI_TO_TCHAR(hexstr));
-						}
-						else {
-							Note_to_play = -1;
-							Note_to_play_nr = -1;
-							in_deltatime = true;
-						}
+					if (running_status <= 0x7F) {
+						UE_LOG(LogTemp, Error, TEXT("Error: Unknown MIDI running status %u"), running_status);
 					}
-					else if (Note_to_stop != -1) {
+					else if (running_status <= 0x8F) {
 						if (Note_to_stop_nr == -1) {
 							Note_to_stop_nr = buf[pos];
-							_itoa((uint8)buf[pos], hexstr, 16);
-							UE_LOG(LogTemp, Log, TEXT("NoteOFF: Nr: %s"), ANSI_TO_TCHAR(hexstr));
+							//_itoa((uint8)buf[pos], hexstr, 16);
+							//UE_LOG(LogTemp, Log, TEXT("NoteOFF: Nr: %s"), ANSI_TO_TCHAR(hexstr));
 						}
 						else {
-							Note_to_stop = -1;
 							Note_to_stop_nr = -1;
 							in_deltatime = true;
 						}
 					}
-					else if (Pressure_to_change != -1) {
+					else if (running_status <= 0x9F) {
+						if (Note_to_play_nr == -1) {
+							Note_to_play_nr = buf[pos];
+						}
+						else {
+							if (buf[pos] > 0) {
+								UE_LOG(LogTemp, Log, TEXT("NoteON	%u	%f	%u"), tick, time_us/1000000.0, Note_to_play_nr);
+							}
+							else {
+								//Note OFF Event
+							}
+							Note_to_play_nr = -1;
+							in_deltatime = true;
+						}
+					}
+
+					else if (running_status <= 0xAF) {
 						if (Pressure_note == -1) {
 							Pressure_note = buf[pos];
 						}
 						else {
 							Pressure_value = buf[pos];
 							Pressure_note = -1;
-							Pressure_to_change = -1;
 							in_deltatime = true;
 						}
 					}
-					else if (Controller_to_change != -1) {
+					else if (running_status <= 0xBF) {
 						if (Controller_type == -1) {
 							Controller_type = buf[pos];
 						}
 						else {
 							Controller_value = buf[pos];
 							Controller_type = -1;
-							Controller_to_change = -1;
+							UE_LOG(LogTemp, Log, TEXT("Controller-End!"));
 							in_deltatime = true;
 						}
 					}
-					else if (Program_to_change != -1) {
-						UE_LOG(LogTemp, Log, TEXT("Programm Change: Channel %d = %u"), Program_to_change, buf[pos]);
-						Instument_table[Program_to_change] = buf[pos];
-						Program_to_change = -1;
+					else if (running_status <= 0xCF) {
+						UE_LOG(LogTemp, Log, TEXT("Program Change: Channel %d = %u"), running_status - 0xC0, buf[pos]);
+						Instument_table[running_status - 0xC0] = buf[pos];
 						in_deltatime = true;
 					}
-					else if (Channel_pressure_to_change != -1) {
-						Pressure_table[Channel_pressure_to_change] = buf[pos];
-						Channel_pressure_to_change = -1;
+					else if (running_status <= 0xDF) {
+						Pressure_table[running_status - 0xD0] = buf[pos];
 						in_deltatime = true;
 					}
-					else if (Pitch_to_change != -1) {
+					else if (running_status <= 0xEF) {
 						if (Pitch_lsb == -1) {
 							Pitch_lsb = buf[pos];
 						}
 						else {
 							Pitch_value = (buf[pos] << 7) + Pitch_lsb;
 							Pitch_lsb = -1;
-							Pitch_to_change = -1;
 							in_deltatime = true;
 						}
 					}
@@ -413,7 +416,7 @@ void ABlockGenerator::BeginPlay()
 						}
 					}
 					else {
-						UE_LOG(LogTemp, Log, TEXT("Error: Unknown MIDI Data %u"), buf[pos]);
+						UE_LOG(LogTemp, Error, TEXT("Error: Unknown MIDI Data %u"), buf[pos]);
 					}
 				}
 			}
