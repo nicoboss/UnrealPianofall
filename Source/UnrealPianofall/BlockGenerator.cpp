@@ -13,12 +13,19 @@
 #include <array>
 #include <fstream>
 #include "Block.h"
+//#include <windows.h>
+
+
+#include <iostream>
+#include <cstdlib>
+
 
 //int viewStats = 0;
 
 // Sets default values
 ABlockGenerator::ABlockGenerator()
 {
+
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -27,10 +34,6 @@ ABlockGenerator::ABlockGenerator()
 
 	Block_Mesh = FoundMesh.Object;
 	Block_Material = FoundMaterial.Object;
-
-	std::array<uint32, 128> testArray = {};
-	testArray[77] = 777;
-	spawnpos.push_back(testArray); //Copy testArray into spawnpos
 
 	FrameNr = 0;
 
@@ -59,11 +62,13 @@ ABlockGenerator::ABlockGenerator()
 void ABlockGenerator::BeginPlay()
 {
 	Super::BeginPlay();
-
-	//std::ifstream midifile("A:\\Music\\britney_spears-born_to_make_you_happy.mid", std::ios::binary); //Huge amount of errors
-	//std::ifstream midifile("A:\\Music\\ZELDA.MID", std::ios::binary); //No errors
-	std::ifstream midifile("A:\\Music\\la_isla_bonita.mid", std::ios::binary); //Huge amount of errors
-	//std::ifstream midifile("A:\\Music\\05ClassExample60bpm.mid", std::ios::binary); //No errors
+	
+	//std::ifstream midifile("A:\\Music\\nekozilla black.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\WreckingBall_1Mio.mid", std::ios::binary);
+	std::ifstream midifile("A:\\Music\\ZELDA.MID", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\la_isla_bonita.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\05ClassExample60bpm.mid", std::ios::binary);
 
 	uint16 PPQ; //Remember: Never reset this between MTrks
 	uint32 usPQ = 500000; //120 PBM
@@ -76,6 +81,18 @@ void ABlockGenerator::BeginPlay()
 	bool in_deltatime;
 	uint64 tick = 0;
 	uint64 time_us = 0;
+	uint32 frame_nr = 0;
+	std::array<uint32, 128> zeroArray = { 0 };
+	//zeroArray.fill(1);
+	//zeroArray.fill(10);
+	//zeroArray[0] = 1;
+	//zeroArray[31] = 5;
+	//zeroArray[63] = 10;
+	//zeroArray[95] = 15;
+	//zeroArray[127] = 20;
+
+	spawnpos.push_back(zeroArray);
+
 	uint32 deltatime_to_add;
 	uint8 deltatime_data_i;
 	uint8 deltatime_data_size = 0;
@@ -111,10 +128,11 @@ void ABlockGenerator::BeginPlay()
 
 	char MTrk[4] = { 'M','T','r','k' };
 	uint8 MTrk_findpos = 0;
-	uint16 pos = 0;
+	//If end of file in for loop: count to end of block
+	uint32 pos = 0; //1 MB buffer = 1048576
 	std::stringstream ss;
 	int32 MTrk_nr = -1;
-	char filebuf[4096] = { 0 };
+	char filebuf[1048576] = { 0 };
 
 	char hexstr[100];
 
@@ -146,20 +164,27 @@ void ABlockGenerator::BeginPlay()
 
 
 	do {
-		UE_LOG(LogTemp, Log, TEXT("Read Block"));
-		midifile.read(filebuf, 4096);
+		//UE_LOG(LogTemp, Log, TEXT("Read Block"));
+		UE_LOG(LogTemp, Log, TEXT("Status: spawnpos list size: %u"), spawnpos.size());
+		UE_LOG(LogTemp, Log, TEXT("Status: MTrk time [s]: %u"), time_us/1000000);
+		midifile.read(filebuf, 1048576);
 		unsigned char *buf = (unsigned char *)filebuf;
 		pos = 0;
+		//UE_LOG(LogTemp, Log, TEXT("Pos set to 0"), pos);
 
 		read_next_MTrk:
+		//UE_LOG(LogTemp, Log, TEXT("read_next_MTrk Pos: %u"), pos);
+
 
 		if (MTrk_len == 0) {
-			for (; pos < 4096; ++pos) {
+			for (; pos < 1048576; ++pos) {
+				//UE_LOG(LogTemp, Log, TEXT("search MTrk Pos: %u"), pos);
 				if (buf[pos] == MTrk[MTrk_findpos]) {
 					if (++MTrk_findpos == 4) {
 						UE_LOG(LogTemp, Log, TEXT("MTrk Found!"));
 						tick = 0;
 						time_us = 0;
+						frame_nr = 0;
 						MTrk_findpos = 0;
 						++MTrk_nr;
 						MTrk_len = 0;
@@ -180,21 +205,21 @@ void ABlockGenerator::BeginPlay()
 						break;
 					}
 				}
- else {
-	 if (buf[pos] == MTrk[0]) {
-		 MTrk_findpos = 1;
-	 }
-	 else {
-		 MTrk_findpos = 0;
-	 }
- }
+				else {
+					if (buf[pos] == MTrk[0]) {
+						MTrk_findpos = 1;
+					}
+					else {
+						MTrk_findpos = 0;
+					}
+				}
 			}
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("pos: %u"), pos);
+		//UE_LOG(LogTemp, Log, TEXT("pos: %u"), pos);
 
 		if (Length_len > 0) {
-			for (; pos < 4096; ++pos) {
+			for (; pos < 1048576; ++pos) {
 				_itoa((uint8)buf[pos], hexstr, 16);
 				UE_LOG(LogTemp, Log, TEXT("Length Data: %s"), ANSI_TO_TCHAR(hexstr));
 				MTrk_len += buf[pos] << (--Length_len * 8);
@@ -209,11 +234,11 @@ void ABlockGenerator::BeginPlay()
 		}
 
 		if (MTrk_len > 0) {
-			for (; pos < 4096; ++pos) {
+			for (; pos < 1048576; ++pos) {
 				//_itoa((uint8)buf[pos], hexstr, 16);
-				//UE_LOG(LogTemp, Log, TEXT("MTrk_len: %u Data: %s = %d"), MTrk_len, ANSI_TO_TCHAR(hexstr), buf[pos]);
+				//UE_LOG(LogTemp, Log, TEXT("MTrk_len: %u Data: %s = %d Pos: %u"), MTrk_len, ANSI_TO_TCHAR(hexstr), buf[pos], pos);
 				if (--MTrk_len == 0) {
-					UE_LOG(LogTemp, Log, TEXT("META-End!"));
+					UE_LOG(LogTemp, Log, TEXT("MTrk-End!"));
 					if (in_META == false || META_type != 0x2F) {
 						UE_LOG(LogTemp, Warning, TEXT("Invalid end-of-track MIDI-event!"));
 					}
@@ -231,6 +256,10 @@ void ABlockGenerator::BeginPlay()
 						}
 						tick += deltatime_to_add;
 						time_us += (deltatime_to_add*usPQ)/PPQ;
+						frame_nr = floor(time_us*0.00006);
+						while (spawnpos.size() < frame_nr) {
+							spawnpos.push_back(zeroArray); //Copy testArray into spawnpos
+						}
 						deltatime_data_size = 0;
 						//UE_LOG(LogTemp, Log, TEXT("deltatime_to_add: %u"), deltatime_to_add);
 						//UE_LOG(LogTemp, Log, TEXT("Time: %f"), time_us/1000000.0);
@@ -346,7 +375,8 @@ void ABlockGenerator::BeginPlay()
 						}
 						else {
 							if (buf[pos] > 0) {
-								UE_LOG(LogTemp, Log, TEXT("NoteON	%u	%f	%u"), tick, time_us/1000000.0, Note_to_play_nr);
+								//UE_LOG(LogTemp, Log, TEXT("NoteON	%u	%f	%u"), tick, time_us/1000000.0, Note_to_play_nr);
+								spawnpos.back()[Note_to_play_nr] += 1;
 							}
 							else {
 								//Note OFF Event
@@ -434,17 +464,28 @@ void ABlockGenerator::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	++FrameNr;
 
-	int32 notenr_rnd;
+	if (FrameNr > spawnpos.size() - 1) {
+		GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Done!");
+		return;
+	}
 
-	for (int i = 0; i < 100; ++i) {
-		notenr_rnd = (uint8)FMath::RandRange(0.0f, 127.0f);
-		FVector location = FVector((float)(6400 - notenr_rnd * 100), 0.0f, 4000.0f);
-		FRotator rotate = FRotator(0.0f, 0.0f, 0.0f);
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnInfo.Owner = this;
-		SpawnInfo.Name = *FString::Printf(TEXT("F%uN%u"), FrameNr, notenr_rnd);
-		AActor* newBlock = GetWorld()->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
+	uint8 notenr;
+	uint32 spawnnr;
+	uint32 spawncount;
+	FVector location;
+	FRotator rotate = FRotator(0.0f, 0.0f, 0.0f);
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnInfo.Owner = this;
+	UWorld* world = GetWorld();
+	for (notenr = 0; notenr < 128; ++notenr) {
+		spawnnr = spawnpos[FrameNr][notenr];
+		for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
+			location = FVector((float)(6400.0f - notenr * 100.0f), (float)(spawncount * 100.0f), 4000.0f);
+			SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
+			AActor* newBlock = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
+			//Beep(440 * 2 ^ ((notenr - 69) / 12), 100);
+		}
 	}
 
 
@@ -453,7 +494,7 @@ void ABlockGenerator::Tick(float DeltaTime)
 	//viewStats = 0;
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABlock::StaticClass(), FoundActors);
-	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime) + "\n" + "Blocks: " + FString::FromInt(FoundActors.Num()));
+	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime) + "\n" + "Blocks: " + FString::FromInt(FoundActors.Num()) + "\n" + "Frame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size()));
 	//}
 
 	//GetHighResScreenshotConfig().ResolutionMultiplier = 4; //Sets the res multiplier
