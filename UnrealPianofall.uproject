@@ -5,6 +5,26 @@
 	"Description": "",
 	"Modules": [
 		{
+			"Name" : "Midi",
+			"Type" : "Runtime",
+			"LoadingPhase" : "Default"
+		},
+		{
+			"Name" : "MidiAsset",
+			"Type" : "Runtime",
+			"LoadingPhase" : "Default"
+		},
+		{
+			"Name" : "MidiInterface",
+			"Type" : "Runtime",
+			"LoadingPhase" : "Default"
+		},
+		{
+			"Name" : "ProceduralAudio",
+			"Type" : "Runtime",
+			"LoadingPhase" : "Default"
+		},
+		{
 			"Name": "UnrealPianofall",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",

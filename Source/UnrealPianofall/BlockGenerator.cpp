@@ -13,6 +13,9 @@
 #include <array>
 #include <fstream>
 #include "Block.h"
+#include "RtMidi.h"
+#include <thread>
+
 //#include <windows.h>
 
 
@@ -69,6 +72,96 @@ void ABlockGenerator::BeginPlay()
 	std::ifstream midifile("A:\\Music\\ZELDA.MID", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\la_isla_bonita.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\05ClassExample60bpm.mid", std::ios::binary);
+
+	RtMidiOut *midiout = 0;
+	std::vector<unsigned char> message;
+	std::string portName;
+	midiout = new RtMidiOut();
+
+	UE_LOG(LogTemp, Log, TEXT("Luuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu: %u"), midiout->getPortCount());
+	portName = midiout->getPortName(0);
+	UE_LOG(LogTemp, Log, TEXT("Luuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu: %s"), *FString(portName.c_str()));
+	midiout->openPort(0);
+
+	// Program change: 192, 5
+	message.push_back(192);
+	message.push_back(5);
+	midiout->sendMessage(&message);
+
+	message[0] = 0xF1;
+	message[1] = 60;
+	midiout->sendMessage(&message);
+
+	// Control Change: 176, 7, 100 (volume)
+	message[0] = 176;
+	message[1] = 7;
+	message.push_back(100);
+	midiout->sendMessage(&message);
+
+	// Note On: 144, 64, 90
+	message[0] = 144;
+	message[1] = 64;
+	message[2] = 90;
+	midiout->sendMessage(&message);
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
+
+	// Note Off: 128, 64, 40
+	message[0] = 128;
+	message[1] = 64;
+	message[2] = 40;
+	midiout->sendMessage(&message);
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
+
+	// Note On: 144, 64, 90
+	message[0] = 144;
+	message[1] = 64 + 12;
+	message[2] = 90;
+	midiout->sendMessage(&message);
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
+
+	// Note Off: 128, 64, 40
+	message[0] = 128;
+	message[1] = 64 + 12;
+	message[2] = 40;
+	midiout->sendMessage(&message);
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
+
+	// Note On: 144, 64, 90
+	message[0] = 144;
+	message[1] = 64 + 12 + 12;
+	message[2] = 90;
+	midiout->sendMessage(&message);
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
+
+	// Note Off: 128, 64, 40
+	message[0] = 128;
+	message[1] = 64 + 12 + 12;
+	message[2] = 40;
+	midiout->sendMessage(&message);
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
+
+	// Control Change: 176, 7, 40
+	message[0] = 176;
+	message[1] = 7;
+	message[2] = 40;
+	midiout->sendMessage(&message);
+
+	// Sysex: 240, 67, 4, 3, 2, 247
+	message[0] = 240;
+	message[1] = 67;
+	message[2] = 4;
+	message.push_back(3);
+	message.push_back(2);
+	message.push_back(247);
+	midiout->sendMessage(&message);
+
+	UE_LOG(LogTemp, Log, TEXT("Luuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"));
 
 	uint16 PPQ; //Remember: Never reset this between MTrks
 	uint32 usPQ = 500000; //120 PBM
