@@ -18,6 +18,7 @@ public:
 	ABlockGenerator();
 
 	std::vector<std::array<uint32, 128>> spawnpos;
+	std::vector<std::array<uint32, 128>> stoppos;
 	FLinearColor rainbow[128];
 	uint32 FrameNr;
 	UStaticMesh* Block_Mesh;

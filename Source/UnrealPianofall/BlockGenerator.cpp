@@ -22,6 +22,8 @@
 #include <iostream>
 #include <cstdlib>
 
+RtMidiOut *midiout = 0;
+std::vector<unsigned char> message;
 
 //int viewStats = 0;
 
@@ -66,40 +68,41 @@ void ABlockGenerator::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	//std::ifstream midifile("A:\\Music\\nekozilla black.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\nekozilla_black.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\WreckingBall_1Mio.mid", std::ios::binary);
 	std::ifstream midifile("A:\\Music\\ZELDA.MID", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\la_isla_bonita.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\05ClassExample60bpm.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\Nyan_Trololo.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\abba-dancing_queen.mid", std::ios::binary);
 
-	RtMidiOut *midiout = 0;
-	std::vector<unsigned char> message;
 	std::string portName;
 	midiout = new RtMidiOut();
 
-	UE_LOG(LogTemp, Log, TEXT("Luuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu: %u"), midiout->getPortCount());
+	UE_LOG(LogTemp, Log, TEXT("midiout->getPortCount(): %u"), midiout->getPortCount());
 	portName = midiout->getPortName(0);
-	UE_LOG(LogTemp, Log, TEXT("Luuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu: %s"), *FString(portName.c_str()));
+	UE_LOG(LogTemp, Log, TEXT("midiout->getPortName(0): %s"), *FString(portName.c_str()));
 	midiout->openPort(0);
 
 	// Program change: 192, 5
-	message.push_back(192);
-	message.push_back(5);
+	message.push_back(0xC0);
+	message.push_back(0x00);
 	midiout->sendMessage(&message);
+	message.push_back(0);
 
-	message[0] = 0xF1;
-	message[1] = 60;
-	midiout->sendMessage(&message);
+	//message[0] = 0xF1;
+	//message[1] = 60;
+	//midiout->sendMessage(&message);
 
 	// Control Change: 176, 7, 100 (volume)
-	message[0] = 176;
-	message[1] = 7;
-	message.push_back(100);
-	midiout->sendMessage(&message);
+	//message[0] = 176;
+	//message[1] = 7;
+	//message.push_back(100);
+	//midiout->sendMessage(&message);
 
 	// Note On: 144, 64, 90
-	message[0] = 144;
+	message[0] = 0x90;
 	message[1] = 64;
 	message[2] = 90;
 	midiout->sendMessage(&message);
@@ -107,61 +110,13 @@ void ABlockGenerator::BeginPlay()
 	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
 
 	// Note Off: 128, 64, 40
-	message[0] = 128;
+	message[0] = 0x80;
 	message[1] = 64;
-	message[2] = 40;
+	message[2] = 0;
 	midiout->sendMessage(&message);
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
 
-	// Note On: 144, 64, 90
-	message[0] = 144;
-	message[1] = 64 + 12;
-	message[2] = 90;
-	midiout->sendMessage(&message);
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
-
-	// Note Off: 128, 64, 40
-	message[0] = 128;
-	message[1] = 64 + 12;
-	message[2] = 40;
-	midiout->sendMessage(&message);
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
-
-	// Note On: 144, 64, 90
-	message[0] = 144;
-	message[1] = 64 + 12 + 12;
-	message[2] = 90;
-	midiout->sendMessage(&message);
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
-
-	// Note Off: 128, 64, 40
-	message[0] = 128;
-	message[1] = 64 + 12 + 12;
-	message[2] = 40;
-	midiout->sendMessage(&message);
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
-
-	// Control Change: 176, 7, 40
-	message[0] = 176;
-	message[1] = 7;
-	message[2] = 40;
-	midiout->sendMessage(&message);
-
-	// Sysex: 240, 67, 4, 3, 2, 247
-	message[0] = 240;
-	message[1] = 67;
-	message[2] = 4;
-	message.push_back(3);
-	message.push_back(2);
-	message.push_back(247);
-	midiout->sendMessage(&message);
-
-	UE_LOG(LogTemp, Log, TEXT("Luuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"));
 
 	uint16 PPQ; //Remember: Never reset this between MTrks
 	uint32 usPQ = 500000; //120 PBM
@@ -185,6 +140,7 @@ void ABlockGenerator::BeginPlay()
 	//zeroArray[127] = 20;
 
 	spawnpos.push_back(zeroArray);
+	stoppos.push_back(zeroArray);
 
 	uint32 deltatime_to_add;
 	uint8 deltatime_data_i;
@@ -229,8 +185,9 @@ void ABlockGenerator::BeginPlay()
 
 	char hexstr[100];
 
-	char header[14];
-	midifile.read(header, 14);
+	char headerbuf[14];
+	midifile.read(headerbuf, 14);
+	unsigned char *header = (unsigned char *)headerbuf;
 	if (header[0] == 'M' &&
 		header[1] == 'T' &&
 		header[2] == 'h' &&
@@ -350,8 +307,9 @@ void ABlockGenerator::BeginPlay()
 						tick += deltatime_to_add;
 						time_us += (deltatime_to_add*usPQ)/PPQ;
 						frame_nr = floor(time_us*0.00006);
-						while (spawnpos.size() < frame_nr) {
+						while (spawnpos.size() <= frame_nr) {
 							spawnpos.push_back(zeroArray); //Copy testArray into spawnpos
+							stoppos.push_back(zeroArray); //Copy testArray into spawnpos
 						}
 						deltatime_data_size = 0;
 						//UE_LOG(LogTemp, Log, TEXT("deltatime_to_add: %u"), deltatime_to_add);
@@ -456,6 +414,8 @@ void ABlockGenerator::BeginPlay()
 							Note_to_stop_nr = buf[pos];
 							//_itoa((uint8)buf[pos], hexstr, 16);
 							//UE_LOG(LogTemp, Log, TEXT("NoteOFF: Nr: %s"), ANSI_TO_TCHAR(hexstr));
+							//UE_LOG(LogTemp, Log, TEXT("STOP: frame_nr: %u size: %u"), frame_nr, stoppos.size());
+							stoppos[frame_nr][Note_to_stop_nr] += 1;
 						}
 						else {
 							Note_to_stop_nr = -1;
@@ -469,10 +429,13 @@ void ABlockGenerator::BeginPlay()
 						else {
 							if (buf[pos] > 0) {
 								//UE_LOG(LogTemp, Log, TEXT("NoteON	%u	%f	%u"), tick, time_us/1000000.0, Note_to_play_nr);
-								spawnpos.back()[Note_to_play_nr] += 1;
+								//UE_LOG(LogTemp, Log, TEXT("START: frame_nr: %u size: %u"), frame_nr, spawnpos.size());
+								spawnpos[frame_nr][Note_to_play_nr] += 1;
 							}
 							else {
 								//Note OFF Event
+								//UE_LOG(LogTemp, Log, TEXT("STOP: frame_nr: %u size: %u"), frame_nr, stoppos.size());
+								stoppos[frame_nr][Note_to_play_nr] += 1;
 							}
 							Note_to_play_nr = -1;
 							in_deltatime = true;
@@ -564,7 +527,9 @@ void ABlockGenerator::Tick(float DeltaTime)
 
 	uint8 notenr;
 	uint32 spawnnr;
+	uint32 stopnr;
 	uint32 spawncount;
+	uint32 stopcount;
 	FVector location;
 	FRotator rotate = FRotator(0.0f, 0.0f, 0.0f);
 	FActorSpawnParameters SpawnInfo;
@@ -573,11 +538,36 @@ void ABlockGenerator::Tick(float DeltaTime)
 	UWorld* world = GetWorld();
 	for (notenr = 0; notenr < 128; ++notenr) {
 		spawnnr = spawnpos[FrameNr][notenr];
-		for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-			location = FVector((float)(6400.0f - notenr * 100.0f), (float)(spawncount * 100.0f), 4000.0f);
-			SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
-			AActor* newBlock = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
-			//Beep(440 * 2 ^ ((notenr - 69) / 12), 100);
+		stopnr = stoppos[FrameNr][notenr];
+		//if (spawnnr > 1) {
+		//	spawnnr = 1;
+		//}
+		//if (stopnr > 1) {
+		//	stopnr = 1;
+		//}
+		if (spawnnr > 0) {
+			for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
+				location = FVector((float)(6400.0f - notenr * 100.0f), (float)(spawncount * 100.0f), 4000.0f);
+				SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
+				AActor* newBlock = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
+
+				// Note On: 0x90, notenr, 0x64
+				//UE_LOG(LogTemp, Log, TEXT("ON: %u"), notenr);
+				message[0] = 0x90;
+				message[1] = notenr;
+				message[2] = 0x64;
+				midiout->sendMessage(&message);
+			}
+		}
+		if (stopnr > 0) {
+			for (stopcount = 0; stopcount < stopnr; ++stopcount) {
+				// Note Off: 0x90, 64, 40
+				//UE_LOG(LogTemp, Log, TEXT("OFF: %u"), notenr);
+				message[0] = 0x80;
+				message[1] = notenr;
+				message[2] = 0;
+				midiout->sendMessage(&message);
+			}
 		}
 	}
 
