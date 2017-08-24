@@ -13,16 +13,23 @@
 #include <array>
 #include <fstream>
 #include "Block.h"
-#include "RtMidi.h"
+
+
+#define MIDI_OUT 0
+
+
+#if MIDI_OUT == 1 && WITH_EDITOR == 0
+//#include "RtMidi.h"
+#include "../MidiInterface/Classes/RtMidi.h"
+#endif
 #include <thread>
-
-//#include <windows.h>
-
 
 #include <iostream>
 #include <cstdlib>
 
+#if MIDI_OUT == 1 && WITH_EDITOR == 0
 RtMidiOut *midiout = 0;
+#endif
 std::vector<unsigned char> message;
 
 //int viewStats = 0;
@@ -70,15 +77,18 @@ void ABlockGenerator::BeginPlay()
 	
 	//std::ifstream midifile("A:\\Music\\nekozilla_black.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\WreckingBall_1Mio.mid", std::ios::binary);
-	std::ifstream midifile("A:\\Music\\ZELDA.MID", std::ios::binary);
+	std::ifstream midifile("A:\\Music\\WreckingBall_1Mio.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\ZELDA.MID", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\la_isla_bonita.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\05ClassExample60bpm.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\Nyan_Trololo.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\abba-dancing_queen.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\lavender_town.mid", std::ios::binary);
 
 	std::string portName;
+	#if MIDI_OUT == 1 && WITH_EDITOR == 0
 	midiout = new RtMidiOut();
+	
 
 	UE_LOG(LogTemp, Log, TEXT("midiout->getPortCount(): %u"), midiout->getPortCount());
 	portName = midiout->getPortName(0);
@@ -116,7 +126,7 @@ void ABlockGenerator::BeginPlay()
 	midiout->sendMessage(&message);
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
-
+	#endif
 
 	uint16 PPQ; //Remember: Never reset this between MTrks
 	uint32 usPQ = 500000; //120 PBM
@@ -539,34 +549,37 @@ void ABlockGenerator::Tick(float DeltaTime)
 	for (notenr = 0; notenr < 128; ++notenr) {
 		spawnnr = spawnpos[FrameNr][notenr];
 		stopnr = stoppos[FrameNr][notenr];
-		//if (spawnnr > 1) {
-		//	spawnnr = 1;
-		//}
-		//if (stopnr > 1) {
-		//	stopnr = 1;
-		//}
+		if (spawnnr > 10) {
+			spawnnr = 10;
+		}
+		if (stopnr > 10) {
+			stopnr = 10;
+		}
 		if (spawnnr > 0) {
 			for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
 				location = FVector((float)(6400.0f - notenr * 100.0f), (float)(spawncount * 100.0f), 4000.0f);
 				SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
 				AActor* newBlock = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
-
+				#if MIDI_OUT == 1 && WITH_EDITOR == 0
 				// Note On: 0x90, notenr, 0x64
 				//UE_LOG(LogTemp, Log, TEXT("ON: %u"), notenr);
 				message[0] = 0x90;
 				message[1] = notenr;
 				message[2] = 0x64;
 				midiout->sendMessage(&message);
+				#endif
 			}
 		}
 		if (stopnr > 0) {
 			for (stopcount = 0; stopcount < stopnr; ++stopcount) {
+				#if MIDI_OUT == 1 && WITH_EDITOR == 0 
 				// Note Off: 0x90, 64, 40
 				//UE_LOG(LogTemp, Log, TEXT("OFF: %u"), notenr);
 				message[0] = 0x80;
 				message[1] = notenr;
 				message[2] = 0;
 				midiout->sendMessage(&message);
+				#endif
 			}
 		}
 	}
