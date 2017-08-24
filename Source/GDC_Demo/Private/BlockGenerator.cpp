@@ -1,5 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+#include "GDC_Demo.h"
 #include "BlockGenerator.h"
 #include "Engine/World.h"
 #include <EngineGlobals.h>
@@ -15,7 +16,7 @@
 #include "Block.h"
 
 
-#define MIDI_OUT 0
+#define MIDI_OUT 1
 
 
 #if MIDI_OUT == 1 && WITH_EDITOR == 0
@@ -74,7 +75,7 @@ ABlockGenerator::ABlockGenerator()
 void ABlockGenerator::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	//std::ifstream midifile("A:\\Music\\nekozilla_black.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid", std::ios::binary);
 	std::ifstream midifile("A:\\Music\\WreckingBall_1Mio.mid", std::ios::binary);
@@ -86,9 +87,9 @@ void ABlockGenerator::BeginPlay()
 	//std::ifstream midifile("A:\\Music\\lavender_town.mid", std::ios::binary);
 
 	std::string portName;
-	#if MIDI_OUT == 1 && WITH_EDITOR == 0
+#if MIDI_OUT == 1 && WITH_EDITOR == 0
 	midiout = new RtMidiOut();
-	
+
 
 	UE_LOG(LogTemp, Log, TEXT("midiout->getPortCount(): %u"), midiout->getPortCount());
 	portName = midiout->getPortName(0);
@@ -119,14 +120,14 @@ void ABlockGenerator::BeginPlay()
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
 
-	// Note Off: 128, 64, 40
+																 // Note Off: 128, 64, 40
 	message[0] = 0x80;
 	message[1] = 64;
 	message[2] = 0;
 	midiout->sendMessage(&message);
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
-	#endif
+#endif
 
 	uint16 PPQ; //Remember: Never reset this between MTrks
 	uint32 usPQ = 500000; //120 PBM
@@ -226,13 +227,13 @@ void ABlockGenerator::BeginPlay()
 	do {
 		//UE_LOG(LogTemp, Log, TEXT("Read Block"));
 		UE_LOG(LogTemp, Log, TEXT("Status: spawnpos list size: %u"), spawnpos.size());
-		UE_LOG(LogTemp, Log, TEXT("Status: MTrk time [s]: %u"), time_us/1000000);
+		UE_LOG(LogTemp, Log, TEXT("Status: MTrk time [s]: %u"), time_us / 1000000);
 		midifile.read(filebuf, 1048576);
 		unsigned char *buf = (unsigned char *)filebuf;
 		pos = 0;
 		//UE_LOG(LogTemp, Log, TEXT("Pos set to 0"), pos);
 
-		read_next_MTrk:
+	read_next_MTrk:
 		//UE_LOG(LogTemp, Log, TEXT("read_next_MTrk Pos: %u"), pos);
 
 
@@ -315,7 +316,7 @@ void ABlockGenerator::BeginPlay()
 							deltatime_to_add += deltatime_data[deltatime_data_i] << ((deltatime_data_size - deltatime_data_i - 1) * 7);
 						}
 						tick += deltatime_to_add;
-						time_us += (deltatime_to_add*usPQ)/PPQ;
+						time_us += (deltatime_to_add*usPQ) / PPQ;
 						frame_nr = floor(time_us*0.00006);
 						while (spawnpos.size() <= frame_nr) {
 							spawnpos.push_back(zeroArray); //Copy testArray into spawnpos
@@ -503,7 +504,8 @@ void ABlockGenerator::BeginPlay()
 							if (SysEx_len == 0) {
 								if (buf[pos] == 0xF7) {
 									SysEx_escape_seq = true;
-								} else {
+								}
+								else {
 									SysEx_escape_seq = false;
 								}
 								SysEx_len = -1;
@@ -557,30 +559,29 @@ void ABlockGenerator::Tick(float DeltaTime)
 		}
 		if (spawnnr > 0) {
 			for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-				//location = FVector((float)(57706 + 6400.0f - notenr * 100.0f), (float)(657252 + spawncount * 100.0f), 4000.0f);
-				location = FVector((float)(305352.0f - notenr * 100.0f), (float)(577009 + spawncount * 100.0f), -84800.0f);
+				location = FVector((float)(90600.0f + spawncount * 100.0f), (float)(645000 - notenr * 100.0f), -110000.0f);
 				SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
-				//AActor* newBlock = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
-				#if MIDI_OUT == 1 && WITH_EDITOR == 0
+				AActor* newBlock = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
+#if MIDI_OUT == 1 && WITH_EDITOR == 0
 				// Note On: 0x90, notenr, 0x64
 				//UE_LOG(LogTemp, Log, TEXT("ON: %u"), notenr);
 				message[0] = 0x90;
 				message[1] = notenr;
 				message[2] = 0x64;
 				midiout->sendMessage(&message);
-				#endif
+#endif
 			}
 		}
 		if (stopnr > 0) {
 			for (stopcount = 0; stopcount < stopnr; ++stopcount) {
-				#if MIDI_OUT == 1 && WITH_EDITOR == 0 
+#if MIDI_OUT == 1 && WITH_EDITOR == 0 
 				// Note Off: 0x90, 64, 40
 				//UE_LOG(LogTemp, Log, TEXT("OFF: %u"), notenr);
 				message[0] = 0x80;
 				message[1] = notenr;
 				message[2] = 0;
 				midiout->sendMessage(&message);
-				#endif
+#endif
 			}
 		}
 	}
@@ -591,7 +592,7 @@ void ABlockGenerator::Tick(float DeltaTime)
 	//viewStats = 0;
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABlock::StaticClass(), FoundActors);
-	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime) + "\nBlocks: " + FString::FromInt(FoundActors.Num()) + "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size()) + "\nPos: " + GEngine->GetFirstLocalPlayerController(world)->PlayerCameraManager->GetCameraLocation().ToString());
+	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime) + "\nBlocks: " + FString::FromInt(FoundActors.Num()) + "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size()) + "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
 	//}
 
 	//GetHighResScreenshotConfig().ResolutionMultiplier = 4; //Sets the res multiplier

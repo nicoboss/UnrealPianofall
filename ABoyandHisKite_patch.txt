@@ -1,0 +1,32 @@
+diff -re ABoyandHisKite/Source/GDC_Demo/KiteDemo.Build.cs UnrealPianofall/Source/GDC_Demo/KiteDemo.Build.cs
+18,19c
+            "Foliage",
+            "Midi",
+            "MidiAsset",
+            "MidiInterface",
+            "ProceduralAudio"
+        });
+.
+9,11c
+
+        PublicDependencyModuleNames.AddRange(new string[] 
+		{
+            "Core", 
+.
+Only in UnrealPianofall/Source/GDC_Demo/Private: Block.cpp
+Only in UnrealPianofall/Source/GDC_Demo/Private: BlockGenerator.cpp
+Only in UnrealPianofall/Source/GDC_Demo/Public: Block.h
+Only in UnrealPianofall/Source/GDC_Demo/Public: BlockGenerator.h
+diff -re ABoyandHisKite/Source/KiteDemo.Target.cs UnrealPianofall/Source/KiteDemo.Target.cs
+12c
+    }
+.
+diff -re ABoyandHisKite/Source/KiteDemoEditor.Target.cs UnrealPianofall/Source/KiteDemoEditor.Target.cs
+14c
+    }
+.
+Only in UnrealPianofall/Source/: Midi
+Only in UnrealPianofall/Source/: MidiAsset
+Only in UnrealPianofall/Source/: MidiInterface
+Only in UnrealPianofall/Source/: ProceduralAudio
+Only in UnrealPianofall/Source/: UnrealPianofall
