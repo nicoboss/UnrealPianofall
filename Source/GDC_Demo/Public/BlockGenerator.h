@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include <vector>
 #include <array>
+#include <queue> 
 #include "BlockGenerator.generated.h"
 
 UCLASS()
@@ -19,6 +20,7 @@ public:
 
 	std::vector<std::array<uint32, 128>> spawnpos;
 	std::vector<std::array<uint32, 128>> stoppos;
+	std::queue<AActor*> blocks;
 	FLinearColor rainbow[128];
 	uint32 FrameNr;
 	UStaticMesh* Block_Mesh;

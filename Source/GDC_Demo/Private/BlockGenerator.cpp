@@ -16,7 +16,7 @@
 #include "Block.h"
 
 
-#define MIDI_OUT 1
+#define MIDI_OUT 0
 
 
 #if MIDI_OUT == 1 && WITH_EDITOR == 0
@@ -519,9 +519,8 @@ void ABlockGenerator::BeginPlay()
 				}
 			}
 		}
-
-
 	} while (midifile);
+
 
 }
 
@@ -551,17 +550,17 @@ void ABlockGenerator::Tick(float DeltaTime)
 	for (notenr = 0; notenr < 128; ++notenr) {
 		spawnnr = spawnpos[FrameNr][notenr];
 		stopnr = stoppos[FrameNr][notenr];
-		if (spawnnr > 10) {
-			spawnnr = 10;
+		if (spawnnr > 5) {
+			spawnnr = 5;
 		}
-		if (stopnr > 10) {
-			stopnr = 10;
+		if (stopnr > 5) {
+			stopnr = 5;
 		}
 		if (spawnnr > 0) {
 			for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
 				location = FVector((float)(90600.0f + spawncount * 100.0f), (float)(645000 - notenr * 100.0f), -110000.0f);
 				SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
-				AActor* newBlock = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
+				blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
 #if MIDI_OUT == 1 && WITH_EDITOR == 0
 				// Note On: 0x90, notenr, 0x64
 				//UE_LOG(LogTemp, Log, TEXT("ON: %u"), notenr);
@@ -586,14 +585,25 @@ void ABlockGenerator::Tick(float DeltaTime)
 		}
 	}
 
+	while (blocks.size() > 6000) {
+		blocks.front()->Destroy();
+		blocks.pop();
+	}
+
 
 	//++viewStats;
 	//if (viewStats == 10) {
 	//viewStats = 0;
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABlock::StaticClass(), FoundActors);
-	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime) + "\nBlocks: " + FString::FromInt(FoundActors.Num()) + "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size()) + "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
+	//TArray<AActor*> FoundActors;
+	//FoundActors[0]->Destroy()
+	//UGameplayStatics::GetAllActorsOfClass(world, ABlock::StaticClass(), FoundActors);
+	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime) + "\nBlocks: " + FString::FromInt(blocks.size()) + "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size()) + "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
 	//}
+
+
+	//ACharacter* myCharacter = UGameplayStatics::GetPlayerCharacter(world, 0);
+	//myCharacter->GetActorLocation();
+	//myCharacter->SetActorRotation();
 
 	//GetHighResScreenshotConfig().ResolutionMultiplier = 4; //Sets the res multiplier
 	//GetWorld()->GetGameViewport()->Viewport->TakeHighResScreenShot(); //Sets the flag in the viewport to take the high-res shot.

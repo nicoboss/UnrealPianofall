@@ -15,8 +15,51 @@ diff -re ABoyandHisKite/Source/GDC_Demo/KiteDemo.Build.cs UnrealPianofall/Source
 .
 Only in UnrealPianofall/Source/GDC_Demo/Private: Block.cpp
 Only in UnrealPianofall/Source/GDC_Demo/Private: BlockGenerator.cpp
+Only in UnrealPianofall/Source/GDC_Demo/Private: CameraManager.cpp
+diff -re ABoyandHisKite/Source/GDC_Demo/Private/GDC_DemoCharacter.cpp UnrealPianofall/Source/GDC_Demo/Private/GDC_DemoCharacter.cpp
+78,81c
+	//PlayerInputComponent->BindAxis("Turn", this, &AGDC_DemoCharacter::Turn);
+	//PlayerInputComponent->BindAxis("TurnRate", this, &AGDC_DemoCharacter::TurnAtRate);
+	//PlayerInputComponent->BindAxis("LookUp", this, &AGDC_DemoCharacter::LookUp);
+	//PlayerInputComponent->BindAxis("LookUpRate", this, &AGDC_DemoCharacter::LookUpAtRate);
+.
+diff -re ABoyandHisKite/Source/GDC_Demo/Private/GDC_DemoGameMode.cpp UnrealPianofall/Source/GDC_Demo/Private/GDC_DemoGameMode.cpp
+44a
+
+	BeginKiteCine();
+.
+31a
+
+.
+29c
+	AttractModeIdleTime = 0.f;
+.
+diff -re ABoyandHisKite/Source/GDC_Demo/Private/GDC_DemoPC.cpp UnrealPianofall/Source/GDC_Demo/Private/GDC_DemoPC.cpp
+240c
+	if (CurrentControlMode == EGDCControlMode::HoverDrone || true)
+.
+25a
+void AGDC_DemoPC::BeginPlay()
+{
+	Super::BeginPlay();
+	SetControlMode(EGDCControlMode::Walk);
+	AGDC_DemoHUD* const Hud = Cast<AGDC_DemoHUD>(GetHUD());
+	if (Hud)
+	{
+		Hud->SetShowTelemetry(false);
+	}
+}
+
+
+.
 Only in UnrealPianofall/Source/GDC_Demo/Public: Block.h
 Only in UnrealPianofall/Source/GDC_Demo/Public: BlockGenerator.h
+Only in UnrealPianofall/Source/GDC_Demo/Public: CameraManager.h
+diff -re ABoyandHisKite/Source/GDC_Demo/Public/GDC_DemoPC.h UnrealPianofall/Source/GDC_Demo/Public/GDC_DemoPC.h
+48a
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+.
 diff -re ABoyandHisKite/Source/KiteDemo.Target.cs UnrealPianofall/Source/KiteDemo.Target.cs
 12c
     }
@@ -30,3 +73,20 @@ Only in UnrealPianofall/Source/: MidiAsset
 Only in UnrealPianofall/Source/: MidiInterface
 Only in UnrealPianofall/Source/: ProceduralAudio
 Only in UnrealPianofall/Source/: UnrealPianofall
+diff -re ABoyandHisKite/Config/DefaultEditor.ini UnrealPianofall/Config/DefaultEditor.ini
+14c
++Map=/Game/Maps/GoldenPath/GDC_Landscape_01.umap
+
+
+.
+diff -re ABoyandHisKite/Config/DefaultEngine.ini UnrealPianofall/Config/DefaultEngine.ini
+200c
+GameName=UnrealPianofall
+.
+173c
+EditorStartupMap=/Game/Maps/GoldenPath/GDC_Landscape_01.GDC_Landscape_01
+.
+diff -re ABoyandHisKite/Config/DefaultGame.ini UnrealPianofall/Config/DefaultGame.ini
+6c
+ProjectID=6EDECC78457B6BA9BEDF1E9B72E9BC55
+.
