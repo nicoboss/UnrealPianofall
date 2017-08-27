@@ -12,7 +12,6 @@ ACameraManager::ACameraManager()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
 }
 
 // Called when the game starts or when spawned
@@ -28,7 +27,7 @@ void ACameraManager::Tick(float DeltaTime)
 
 	UWorld* world = GetWorld();
 	APawn* PlayerPawn = world->GetFirstPlayerController()->GetPawn();
-	framenr += 5.0;
+	framenr += 1.0;
 
 	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Scene: " + FString::FromInt(scenenr) + " framenr: " + FString::FromInt(framenr));
 
@@ -116,18 +115,61 @@ void ACameraManager::Tick(float DeltaTime)
 		//FVector Pos2 = FVector(95185.313, 641331.438, -116694.117);
 		FVector Pos2 = FVector(96444.648, 634757.688, -117495.625);
 		//FVector Pos2 = FVector(100944.430, 607356.250, -118364.445);
-		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * framenr / 600.0f;
+		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * framenr / 800.0f;
 		FRotator NewRot = (Pos2 - NewLoc).Rotation();
+		PlayerPawn->TeleportTo(NewLoc, NewRot);
+		if (framenr == 800.0) {
+			framenr = 0.0;
+			playerlastpos = NewLoc;
+			scenenr += 1;
+		}
+		break;
+	}
+	case 8: {
+		FVector Pos1 = FVector(174994.547, 675927.188, -86679.375);
+		FVector Pos2 = FVector(-19848.641, 608025.688, -110734.070);
+		FVector NewLoc = Pos1 + (Pos2 - Pos1) * framenr / 1200.0f;
+		FRotator NewRot = (centerposdown - NewLoc).Rotation();
+		PlayerPawn->TeleportTo(NewLoc, NewRot);
+		if (framenr == 1200.0) {
+			framenr = 0.0;
+			playerlastpos = NewLoc;
+			scenenr += 1;
+		}
+		break;
+	}
+	case 9: {
+		//FVector Pos2 = FVector(18697.531, 643321.875, -118784.719);
+		FVector Pos2 = FVector(64852.566, 650231.813, -120194.289);
+		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * framenr / 600.0f;
+		FRotator NewRot = (centerposdown - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
 		if (framenr == 600.0) {
 			framenr = 0.0;
 			playerlastpos = NewLoc;
 			scenenr += 1;
+		}
+		break;
+	}
+	case 10: {
+		//FVector Pos2 = FVector(25300.885, 646003.500, -120586.031);
+		FVector Pos2 = FVector(74327.547, 642531.375, -116940.477);
+		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * framenr / 600.0f;
+		FRotator NewRot = (centerposdown - NewLoc).Rotation();
+		PlayerPawn->TeleportTo(NewLoc, NewRot);
+		if (framenr == 600.0) {
+			framenr = 0.0;
+			playerlastpos = NewLoc;
+			scenenr += 1;
+			//FVector NewLoc = FVector(97886.914, 644859.750,-115223.320);
+			FVector NewLoc = FVector(97823.852, 653343.125, -111936.500);
+			FRotator NewRot = (centerposdown - NewLoc).Rotation();
+			PlayerPawn->TeleportTo(NewLoc, NewRot);
 			this->Destroy();
 		}
 		break;
 	}
-
+	
 	}
 	
 	
