@@ -29,7 +29,7 @@ void ACameraManager::Tick(float DeltaTime)
 	APawn* PlayerPawn = world->GetFirstPlayerController()->GetPawn();
 	framenr += 1.0;
 
-	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Scene: " + FString::FromInt(scenenr) + " framenr: " + FString::FromInt(framenr));
+	//GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Scene: " + FString::FromInt(scenenr) + " framenr: " + FString::FromInt(framenr));
 
 	switch (scenenr) {
 	case 0: {

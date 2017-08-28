@@ -8,6 +8,7 @@
 #include "Runtime/Engine/Public/HighResScreenshot.h"
 #include "Runtime/Engine/Public/ImageUtils.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "Runtime/Core/Public/Misc/MessageDialog.h"
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -16,7 +17,7 @@
 #include "Block.h"
 
 
-#define MIDI_OUT 0
+#define MIDI_OUT 1
 
 
 #if MIDI_OUT == 1 && WITH_EDITOR == 0
@@ -78,13 +79,55 @@ void ABlockGenerator::BeginPlay()
 
 	//std::ifstream midifile("A:\\Music\\nekozilla_black.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid", std::ios::binary);
-	std::ifstream midifile("A:\\Music\\WreckingBall_1Mio.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\WreckingBall_1Mio.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\ZELDA.MID", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\la_isla_bonita.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\05ClassExample60bpm.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\Nyan_Trololo.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\abba-dancing_queen.mid", std::ios::binary);
 	//std::ifstream midifile("A:\\Music\\lavender_town.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\BA.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\britney_spears-born_to_make_you_happy_BA.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\madonna-hung_up.mid", std::ios::binary);
+	//std::ifstream midifile("A:\\Music\\BA_PPQ_hack.mid", std::ios::binary);
+
+	//File compatible with http://www.fourmilab.ch/webtools/midicsv/
+	//It's very usefull to test my MIDI pharser
+	//Binary mode in order to get linux line-endings due to sed output has linux line endings
+	//How to conveart the midicsv output to MIDI note events only so that thair hashes should match:
+	//sed '/Note_on_c\|Note_off_c/!d' 05ClassExample60bpm.csv > 05ClassExample60bpm_notes.csv
+	//std::ofstream outfile("A:\\Music\\midi.csv", std::ofstream::trunc|std::ios::binary);
+
+	const FText cmd_error_title = FText::FromName("Invalid command line argument");
+	FString arg_midi_fileName;
+	FString midi_fileName;
+	uint16 arg_spawnreduction;
+	uint32 arg_blocklimit;
+
+	//string
+	if (FParse::Value(FCommandLine::Get(), TEXT("midi"), arg_midi_fileName)) {
+		midi_fileName = arg_midi_fileName.Replace(TEXT("="), TEXT("")).Replace(TEXT("\""), TEXT("")); // replace quotes
+		
+	}
+	else {
+		//GetWorld()->GetFirstPlayerController()->ConsoleCommand("quit");
+		//FGenericPlatformMisc::RequestExit(true);
+		//////FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Invalid MIDI-file!\nCommand line argument missing!\nExample how to call this software:\n-midi=C:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid"), &cmd_error_title);
+		//midi_fileName = "A:\\Music\\05ClassExample60bpm.mid";
+		midi_fileName = "A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid";
+	}
+
+	//integer
+	if (FParse::Value(FCommandLine::Get(), TEXT("reduction"), arg_spawnreduction)) {
+		spawnreduction = arg_spawnreduction;
+	}
+
+	//integer
+	if (FParse::Value(FCommandLine::Get(), TEXT("limit"), arg_blocklimit)) {
+		blocklimit = arg_blocklimit;
+	}
+
+	std::ifstream midifile(*midi_fileName, std::ios::binary);
 
 	std::string portName;
 #if MIDI_OUT == 1 && WITH_EDITOR == 0
@@ -130,7 +173,7 @@ void ABlockGenerator::BeginPlay()
 #endif
 
 	uint16 PPQ; //Remember: Never reset this between MTrks
-	uint32 usPQ = 500000; //120 PBM
+	uint32 usPQ = 500000; //120 PBM because 60000000/500000=500000
 
 	uint8 Length_len = 0;
 	uint32 MTrk_len = 0;
@@ -191,7 +234,7 @@ void ABlockGenerator::BeginPlay()
 	//If end of file in for loop: count to end of block
 	uint32 pos = 0; //1 MB buffer = 1048576
 	std::stringstream ss;
-	int32 MTrk_nr = -1;
+	uint32 MTrk_nr = 0; //First MTrk is number 1 to fit the midicsv standard
 	char filebuf[1048576] = { 0 };
 
 	char hexstr[100];
@@ -242,12 +285,13 @@ void ABlockGenerator::BeginPlay()
 				//UE_LOG(LogTemp, Log, TEXT("search MTrk Pos: %u"), pos);
 				if (buf[pos] == MTrk[MTrk_findpos]) {
 					if (++MTrk_findpos == 4) {
-						UE_LOG(LogTemp, Log, TEXT("MTrk Found!"));
+						++MTrk_nr;
+						UE_LOG(LogTemp, Log, TEXT("MTrk Found! MTrk_nr: %u"), MTrk_nr);
 						tick = 0;
 						time_us = 0;
+						//usPQ = 500000; //NO NEVER DO THIS! IT'S WRONG! (No idea why)
 						frame_nr = 0;
 						MTrk_findpos = 0;
-						++MTrk_nr;
 						MTrk_len = 0;
 						Length_len = 4;
 						running_status = 0;
@@ -300,6 +344,7 @@ void ABlockGenerator::BeginPlay()
 				//UE_LOG(LogTemp, Log, TEXT("MTrk_len: %u Data: %s = %d Pos: %u"), MTrk_len, ANSI_TO_TCHAR(hexstr), buf[pos], pos);
 				if (--MTrk_len == 0) {
 					UE_LOG(LogTemp, Log, TEXT("MTrk-End!"));
+					UE_LOG(LogTemp, Log, TEXT("Frames: %u"), frame_nr);
 					if (in_META == false || META_type != 0x2F) {
 						UE_LOG(LogTemp, Warning, TEXT("Invalid end-of-track MIDI-event!"));
 					}
@@ -354,7 +399,7 @@ void ABlockGenerator::BeginPlay()
 										//UE_LOG(LogTemp, Log, TEXT("New usPQ data: %u"), META_data[MIDI_data_i]);
 									}
 									if (usPQ == 0) {
-										usPQ = 500000; //120 PBM
+										usPQ = 500000; //120 PBM because 60000000/500000=500000
 									}
 									UE_LOG(LogTemp, Log, TEXT("New usPQ = %u"), usPQ);
 								}
@@ -385,7 +430,6 @@ void ABlockGenerator::BeginPlay()
 						running_status = buf[pos];
 					}
 					else if (buf[pos] <= 0xCF) {
-						//UE_LOG(LogTemp, Log, TEXT("Program Change: Channel %u"), buf[pos] - 0xC0);
 						running_status = buf[pos];
 					}
 					else if (buf[pos] <= 0xDF) {
@@ -423,12 +467,13 @@ void ABlockGenerator::BeginPlay()
 					else if (running_status <= 0x8F) {
 						if (Note_to_stop_nr == -1) {
 							Note_to_stop_nr = buf[pos];
+						}
+						else {
+							//outfile << MTrk_nr << ", " << tick << ", Note_off_c, " << (int)(running_status - 0x80) << ", " << (int)Note_to_stop_nr << ", " << (int)buf[pos] << "\n";
 							//_itoa((uint8)buf[pos], hexstr, 16);
 							//UE_LOG(LogTemp, Log, TEXT("NoteOFF: Nr: %s"), ANSI_TO_TCHAR(hexstr));
 							//UE_LOG(LogTemp, Log, TEXT("STOP: frame_nr: %u size: %u"), frame_nr, stoppos.size());
 							stoppos[frame_nr][Note_to_stop_nr] += 1;
-						}
-						else {
 							Note_to_stop_nr = -1;
 							in_deltatime = true;
 						}
@@ -438,6 +483,7 @@ void ABlockGenerator::BeginPlay()
 							Note_to_play_nr = buf[pos];
 						}
 						else {
+							//outfile << MTrk_nr << ", " << tick << ", Note_on_c, " << (int)(running_status - 0x90) << ", " << (int)Note_to_play_nr << ", " << (int)buf[pos] << "\n";
 							if (buf[pos] > 0) {
 								//UE_LOG(LogTemp, Log, TEXT("NoteON	%u	%f	%u"), tick, time_us/1000000.0, Note_to_play_nr);
 								//UE_LOG(LogTemp, Log, TEXT("START: frame_nr: %u size: %u"), frame_nr, spawnpos.size());
@@ -445,7 +491,7 @@ void ABlockGenerator::BeginPlay()
 							}
 							else {
 								//Note OFF Event
-								//UE_LOG(LogTemp, Log, TEXT("STOP: frame_nr: %u size: %u"), frame_nr, stoppos.size());
+								//UE_LOG(LogTemp, Log, TEXT("NoteOFF: frame_nr: %u size: %u"), frame_nr, stoppos.size());
 								stoppos[frame_nr][Note_to_play_nr] += 1;
 							}
 							Note_to_play_nr = -1;
@@ -529,10 +575,10 @@ void ABlockGenerator::Tick(float DeltaTime)
 {
 	//UE_LOG(LogTemp, Log, TEXT("spawnpos[0][77]: %u"), spawnpos[0][77]);
 	Super::Tick(DeltaTime);
-	++FrameNr;
 
-	if (FrameNr > spawnpos.size() - 1) {
+	if (FrameNr > spawnpos.size() - 2) {
 		GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Done!");
+		++FrameNr;
 		return;
 	}
 
@@ -550,11 +596,11 @@ void ABlockGenerator::Tick(float DeltaTime)
 	for (notenr = 0; notenr < 128; ++notenr) {
 		spawnnr = spawnpos[FrameNr][notenr];
 		stopnr = stoppos[FrameNr][notenr];
-		if (spawnnr > 5) {
-			spawnnr = 5;
+		if (spawnnr > spawnreduction) {
+			spawnnr = spawnreduction;
 		}
-		if (stopnr > 5) {
-			stopnr = 5;
+		if (stopnr > spawnreduction) {
+			stopnr = spawnreduction;
 		}
 		if (spawnnr > 0) {
 			for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
@@ -576,16 +622,16 @@ void ABlockGenerator::Tick(float DeltaTime)
 #if MIDI_OUT == 1 && WITH_EDITOR == 0 
 				// Note Off: 0x90, 64, 40
 				//UE_LOG(LogTemp, Log, TEXT("OFF: %u"), notenr);
-				message[0] = 0x80;
-				message[1] = notenr;
-				message[2] = 0;
-				midiout->sendMessage(&message);
+				//message[0] = 0x80;
+				//message[1] = notenr;
+				//message[2] = 0;
+				//midiout->sendMessage(&message);
 #endif
 			}
 		}
 	}
 
-	while (blocks.size() > 6000) {
+	while (blocks.size() > blocklimit) {
 		blocks.front()->Destroy();
 		blocks.pop();
 	}
@@ -597,7 +643,12 @@ void ABlockGenerator::Tick(float DeltaTime)
 	//TArray<AActor*> FoundActors;
 	//FoundActors[0]->Destroy()
 	//UGameplayStatics::GetAllActorsOfClass(world, ABlock::StaticClass(), FoundActors);
-	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime) + "\nBlocks: " + FString::FromInt(blocks.size()) + "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size()) + "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
+	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green,
+		  "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime)
+		+ "\nBlocks: " + FString::FromInt(blocks.size())
+		+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size())
+		+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60) 
+		+ "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
 	//}
 
 
@@ -607,6 +658,8 @@ void ABlockGenerator::Tick(float DeltaTime)
 
 	//GetHighResScreenshotConfig().ResolutionMultiplier = 4; //Sets the res multiplier
 	//GetWorld()->GetGameViewport()->Viewport->TakeHighResScreenShot(); //Sets the flag in the viewport to take the high-res shot.
+
+	++FrameNr;
 
 }
 
