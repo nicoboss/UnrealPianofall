@@ -17,21 +17,32 @@
 #include "Block.h"
 
 
-#define MIDI_OUT 1
-#define LOG_EVENTS "A:\\Music\\midi_data.csv"
+#define MIDI_OUT 0
+#if WITH_EDITOR == 1
+#define MIDI_PATH "A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid"
+#define LIMIT_VALUE 6000
+#define REDUCTION_VALUE 5
+#endif
+#define LOG_PATH "A:\\Music\\midi_data.csv"
+
+#ifdef LOG_PATH
 #define LOG_NOTES 0
+#define LOG_EVENTS 1
+#else
+#define LOG_NOTES 0 
+#define LOG_EVENTS 0
+#endif
 
 #if MIDI_OUT == 1 && WITH_EDITOR == 0
-//#include "RtMidi.h"
 #include "../MidiInterface/Classes/RtMidi.h"
-#endif
 #include <thread>
+#endif
 
 #include <iostream>
 #include <cstdlib>
 
 #if MIDI_OUT == 1 && WITH_EDITOR == 0
-RtMidiOut *midiout = 0;
+	RtMidiOut *midiout = 0;
 #endif
 std::vector<unsigned char> message;
 
@@ -78,31 +89,16 @@ void ABlockGenerator::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//std::ifstream midifile("A:\\Music\\nekozilla_black.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\WreckingBall_1Mio.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\ZELDA.MID", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\la_isla_bonita.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\05ClassExample60bpm.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\Nyan_Trololo.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\abba-dancing_queen.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\lavender_town.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\BA.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\britney_spears-born_to_make_you_happy_BA.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\madonna-hung_up.mid", std::ios::binary);
-	//std::ifstream midifile("A:\\Music\\BA_PPQ_hack.mid", std::ios::binary);
-
 	//File compatible with http://www.fourmilab.ch/webtools/midicsv/
 	//It's very usefull to test my MIDI pharser
 	//Binary mode in order to get linux line-endings due to sed output has linux line endings
 	//How to conveart the midicsv output to MIDI note events only so that thair hashes should match:
 	//sed '/Note_on_c\|Note_off_c/!d' 05ClassExample60bpm.csv > 05ClassExample60bpm_notes.csv
-
-	#ifdef LOG_EVENTS
-		std::ofstream outfile_events(LOG_EVENTS, std::ofstream::trunc | std::ios::binary);
+	#ifdef LOG_PATH
+		#if LOG_NOTES == 1 || LOG_EVENTS == 1
+			std::ofstream logfile(LOG_PATH, std::ofstream::trunc | std::ios::binary);
+		#endif
 	#endif
-	
-	std::ofstream outfile_notes("A:\\Music\\midi_notes_FIX1.csv", std::ofstream::trunc | std::ios::binary);
 
 	const FText cmd_error_title = FText::FromName("Invalid command line argument");
 	FString arg_midi_fileName;
@@ -110,28 +106,39 @@ void ABlockGenerator::BeginPlay()
 	uint16 arg_spawnreduction;
 	uint32 arg_blocklimit;
 
-	//string
-	if (FParse::Value(FCommandLine::Get(), TEXT("midi"), arg_midi_fileName)) {
-		midi_fileName = arg_midi_fileName.Replace(TEXT("="), TEXT("")).Replace(TEXT("\""), TEXT("")); // replace quotes
+	#ifdef MIDI_PATH
+		midi_fileName = MIDI_PATH;
+	#else
+		if (FParse::Value(FCommandLine::Get(), TEXT("midi"), arg_midi_fileName)) {
+			midi_fileName = arg_midi_fileName.Replace(TEXT("="), TEXT("")).Replace(TEXT("\""), TEXT("")); // replace quotes
 		
-	}
-	else {
-		//GetWorld()->GetFirstPlayerController()->ConsoleCommand("quit");
-		//FGenericPlatformMisc::RequestExit(true);
-		//////FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Invalid MIDI-file!\nCommand line argument missing!\nExample how to call this software:\n-midi=C:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid"), &cmd_error_title);
-		//midi_fileName = "A:\\Music\\05ClassExample60bpm.mid";
-		midi_fileName = "A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid";
-	}
+		}
+		else {
+			//GetWorld()->GetFirstPlayerController()->ConsoleCommand("quit");
+			//FGenericPlatformMisc::RequestExit(true);
+			FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Invalid MIDI-file!\nCommand line argument missing!\nExample how to call this software:\n-midi=C:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid"), &cmd_error_title);
+		}
+	#endif
+	
+	
+	#ifdef LIMIT_VALUE
+		blocklimit = LIMIT_VALUE;
+	#else
+		if (FParse::Value(FCommandLine::Get(), TEXT("limit"), arg_blocklimit)) {
+			blocklimit = arg_blocklimit;
+		}
+	#endif
 
-	//integer
-	if (FParse::Value(FCommandLine::Get(), TEXT("reduction"), arg_spawnreduction)) {
-		spawnreduction = arg_spawnreduction;
-	}
 
-	//integer
-	if (FParse::Value(FCommandLine::Get(), TEXT("limit"), arg_blocklimit)) {
-		blocklimit = arg_blocklimit;
-	}
+	#ifdef REDUCTION_VALUE
+		spawnreduction = REDUCTION_VALUE;
+	#else
+		if (FParse::Value(FCommandLine::Get(), TEXT("reduction"), arg_spawnreduction)) {
+			spawnreduction = arg_spawnreduction;
+		}
+	#endif
+
+
 
 	std::ifstream midifile(*midi_fileName, std::ios::binary);
 
@@ -292,8 +299,8 @@ void ABlockGenerator::BeginPlay()
 				if (buf[pos] == MTrk[MTrk_findpos]) {
 					if (++MTrk_findpos == 4) {
 						++MTrk_nr;
-						#ifdef LOG_EVENTS
-							outfile_events << "MTrk Found! MTrk_nr: " << MTrk_nr << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "MTrk Found! MTrk_nr: " << MTrk_nr << "\n";
 						#endif
 						UE_LOG(LogTemp, Log, TEXT("MTrk Found! MTrk_nr: %u"), MTrk_nr);
 						tick = 0;
@@ -335,14 +342,14 @@ void ABlockGenerator::BeginPlay()
 		if (Length_len > 0) {
 			for (; pos < 1048576; ++pos) {
 				_itoa((uint8)buf[pos], hexstr, 16);
-				#ifdef LOG_EVENTS
-					outfile_events << "Length Data: " << hexstr << "\n";
+				#if LOG_EVENTS == 1
+					logfile << "Length Data: " << hexstr << "\n";
 				#endif
 				UE_LOG(LogTemp, Log, TEXT("Length Data: %s"), ANSI_TO_TCHAR(hexstr));
 				MTrk_len += buf[pos] << (--Length_len * 8);
 				if (Length_len == 0) {
-					#ifdef LOG_EVENTS
-						outfile_events << "MTrk_len: " << (int)MTrk_len << "\n";
+					#if LOG_EVENTS == 1
+						logfile << "MTrk_len: " << (int)MTrk_len << "\n";
 					#endif
 					UE_LOG(LogTemp, Log, TEXT("MTrk_len: %u"), MTrk_len);
 					++pos;
@@ -357,22 +364,22 @@ void ABlockGenerator::BeginPlay()
 			for (; pos < 1048576; ++pos) {
 				if (MTrk_nr >= 37 && MTrk_nr <= 38 || MTrk_nr <= 2) {
 					_itoa((uint8)buf[pos], hexstr, 16);
-					#ifdef LOG_EVENTS
-						outfile_events << "MTrk_len: " << (int)MTrk_len << " Data: " << hexstr << " = " << (int)buf[pos] << " Pos: " << (int)pos << "\n";
+					#if LOG_EVENTS == 1
+						logfile << "MTrk_len: " << (int)MTrk_len << " Data: " << hexstr << " = " << (int)buf[pos] << " Pos: " << (int)pos << "\n";
 					#endif
 					//UE_LOG(LogTemp, Log, TEXT("MTrk_len: %u Data: %s = %d Pos: %u"), MTrk_len, ANSI_TO_TCHAR(hexstr), buf[pos], pos);
 				}
 
 				if (--MTrk_len == 0) {
-					#ifdef LOG_EVENTS
-						outfile_events << "MTrk-End!\n";
-						outfile_events << "Frames: " << frame_nr << "\n";
+					#if LOG_EVENTS == 1
+						logfile << "MTrk-End!\n";
+						logfile << "Frames: " << frame_nr << "\n";
 					#endif
 					UE_LOG(LogTemp, Log, TEXT("MTrk-End!"));
 					UE_LOG(LogTemp, Log, TEXT("Frames: %u"), frame_nr);
 					if (in_META == false || META_type != 0x2F) {
-						#ifdef LOG_EVENTS
-							outfile_events << "Invalid end-of-track MIDI-event!\n";
+						#if LOG_EVENTS == 1
+							logfile << "Invalid end-of-track MIDI-event!\n";
 						#endif
 						UE_LOG(LogTemp, Warning, TEXT("Invalid end-of-track MIDI-event!"));
 					}
@@ -406,16 +413,16 @@ void ABlockGenerator::BeginPlay()
 
 				if (in_META == true) {
 					if (META_type == -1) {
-						#ifdef LOG_EVENTS
-							outfile_events << "META_type = " << (int)buf[pos] << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "META_type = " << (int)buf[pos] << "\n";
 						#endif
 						UE_LOG(LogTemp, Log, TEXT("META_type = %u"), buf[pos]);
 						META_type = buf[pos];
 					}
 					else {
 						if (META_len == -1) {
-							#ifdef LOG_EVENTS
-								outfile_events << "META_len = " << (int)buf[pos] << "\n";
+							#if LOG_EVENTS == 1
+								logfile << "META_len = " << (int)buf[pos] << "\n";
 							#endif
 							UE_LOG(LogTemp, Log, TEXT("META_len = %u"), buf[pos]);
 							META_len = buf[pos];
@@ -439,13 +446,13 @@ void ABlockGenerator::BeginPlay()
 									if (usPQ == 0) {
 										usPQ = 500000; //120 PBM because 60000000/500000=500000
 									}
-									#ifdef LOG_EVENTS
-										outfile_events << "New usPQ = " << (int)usPQ << "\n";
+									#if LOG_EVENTS == 1
+										logfile << "New usPQ = " << (int)usPQ << "\n";
 									#endif
 									UE_LOG(LogTemp, Log, TEXT("New usPQ = %u"), usPQ);
 								}
-								#ifdef LOG_EVENTS
-									outfile_events << "META-End!" << "\n";
+								#if LOG_EVENTS == 1
+									logfile << "META-End!" << "\n";
 								#endif
 								UE_LOG(LogTemp, Log, TEXT("META-End!"));
 								in_META = false;
@@ -466,15 +473,15 @@ void ABlockGenerator::BeginPlay()
 						running_status = buf[pos];
 					}
 					else if (buf[pos] <= 0xAF) {
-						#ifdef LOG_EVENTS
-							outfile_events << "Polyphonic Pressure: Channel " << (int)(buf[pos] - 0x90) << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "Polyphonic Pressure: Channel " << (int)(buf[pos] - 0x90) << "\n";
 						#endif
 						UE_LOG(LogTemp, Log, TEXT("Polyphonic Pressure: Channel %u"), buf[pos] - 0x90);
 						running_status = buf[pos];
 					}
 					else if (buf[pos] <= 0xBF) {
-						#ifdef LOG_EVENTS
-							outfile_events << "Controller Change: Channel " << (int)buf[pos] - 0xB0 << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "Controller Change: Channel " << (int)buf[pos] - 0xB0 << "\n";
 						#endif
 						UE_LOG(LogTemp, Log, TEXT("Controller Change: Channel %u"), buf[pos] - 0xB0);
 						running_status = buf[pos];
@@ -483,22 +490,22 @@ void ABlockGenerator::BeginPlay()
 						running_status = buf[pos];
 					}
 					else if (buf[pos] <= 0xDF) {
-						#ifdef LOG_EVENTS
-							outfile_events << "Channel Pressure Change: Channel " << (int)buf[pos] - 0xC0 << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "Channel Pressure Change: Channel " << (int)buf[pos] - 0xC0 << "\n";
 						#endif
 						UE_LOG(LogTemp, Log, TEXT("Channel Pressure Change: Channel %u"), buf[pos] - 0xC0);
 						running_status = buf[pos];
 					}
 					else if (buf[pos] <= 0xEF) {
-						#ifdef LOG_EVENTS
-						outfile_events << "Pitch Bend: Channel " << (int)buf[pos] - 0xC0 << "\n";
+						#if LOG_EVENTS == 1
+						logfile << "Pitch Bend: Channel " << (int)buf[pos] - 0xC0 << "\n";
 						#endif
 						UE_LOG(LogTemp, Log, TEXT("Pitch Bend: Channel %u"), buf[pos] - 0xC0);
 						running_status = buf[pos];
 					}
 					else if (buf[pos] == 0xF0 || buf[pos] == 0xF7) {
-						#ifdef LOG_EVENTS
-							outfile_events << "SysEx/EscSeq: " << (int)buf[pos] - 0xC0 << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "SysEx/EscSeq: " << (int)buf[pos] - 0xC0 << "\n";
 						#endif
 						UE_LOG(LogTemp, Log, TEXT("SysEx/EscSeq: "), buf[pos] - 0xC0);
 						SysEx_type = buf[pos];
@@ -506,8 +513,8 @@ void ABlockGenerator::BeginPlay()
 						running_status = 0;
 					}
 					else if (buf[pos] == 0xFF) {
-						#ifdef LOG_EVENTS
-							outfile_events << "META-Start" << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "META-Start" << "\n";
 						#endif
 						UE_LOG(LogTemp, Log, TEXT("META-Start"));
 						MIDI_data_pos = 0;
@@ -517,8 +524,8 @@ void ABlockGenerator::BeginPlay()
 						running_status = 0;
 					}
 					else {
-						#ifdef LOG_EVENTS
-							outfile_events << "Error: Unknown MIDI Event " << (int)buf[pos] << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "Error: Unknown MIDI Event " << (int)buf[pos] << "\n";
 						#endif
 						UE_LOG(LogTemp, Error, TEXT("Error: Unknown MIDI Event %u"), buf[pos]);
 						running_status = 0;
@@ -527,8 +534,8 @@ void ABlockGenerator::BeginPlay()
 
 				else {
 					if (running_status <= 0x7F) {
-						#ifdef LOG_EVENTS
-							outfile_events << "Error: Unknown MIDI running status " << (int)running_status << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "Error: Unknown MIDI running status " << (int)running_status << "\n";
 						#endif
 						UE_LOG(LogTemp, Error, TEXT("Error: Unknown MIDI running status %u"), running_status);
 					}
@@ -537,15 +544,12 @@ void ABlockGenerator::BeginPlay()
 							Note_to_stop_nr = buf[pos];
 						}
 						else {
-							outfile_notes << MTrk_nr << ", " << tick << ", Note_off_c, " << (int)(running_status - 0x80) << ", " << (int)Note_to_stop_nr << ", " << (int)buf[pos] << "\n";
-							if (MTrk_nr >= 37 && MTrk_nr <= 38 || MTrk_nr <= 2) {
-								#ifdef LOG_EVENTS
-									outfile_events << MTrk_nr << ", " << tick << ", Note_off_c, " << (int)(running_status - 0x80) << ", " << (int)Note_to_stop_nr << ", " << (int)buf[pos] << "\n";
-								#endif
-							}
-							//_itoa((uint8)buf[pos], hexstr, 16);
-							//UE_LOG(LogTemp, Log, TEXT("NoteOFF: Nr: %s"), ANSI_TO_TCHAR(hexstr));
-							//UE_LOG(LogTemp, Log, TEXT("STOP: frame_nr: %u size: %u"), frame_nr, stoppos.size());
+							//Note OFF Event
+							//if (MTrk_nr >= 37 && MTrk_nr <= 38 || MTrk_nr <= 2) {
+							#if LOG_NOTES == 1
+								logfile << MTrk_nr << ", " << tick << ", Note_off_c, " << (int)(running_status - 0x80) << ", " << (int)Note_to_stop_nr << ", " << (int)buf[pos] << "\n";
+							#endif
+							//}
 							stoppos[frame_nr][Note_to_stop_nr] += 1;
 							Note_to_stop_nr = -1;
 							in_deltatime = true;
@@ -556,20 +560,17 @@ void ABlockGenerator::BeginPlay()
 							Note_to_play_nr = buf[pos];
 						}
 						else {
-							outfile_notes << MTrk_nr << ", " << tick << ", Note_on_c, " << (int)(running_status - 0x90) << ", " << (int)Note_to_play_nr << ", " << (int)buf[pos] << "\n";
-							if (MTrk_nr >= 37 && MTrk_nr <= 38 || MTrk_nr <= 2) {
-								#ifdef LOG_EVENTS
-									outfile_events << MTrk_nr << ", " << tick << ", Note_on_c, " << (int)(running_status - 0x90) << ", " << (int)Note_to_play_nr << ", " << (int)buf[pos] << "\n";
-								#endif
-							}
+							//if (MTrk_nr >= 37 && MTrk_nr <= 38 || MTrk_nr <= 2) {
+							#if LOG_NOTES == 1
+								logfile << MTrk_nr << ", " << tick << ", Note_on_c, " << (int)(running_status - 0x90) << ", " << (int)Note_to_play_nr << ", " << (int)buf[pos] << "\n";
+							#endif
+							//}
 							if (buf[pos] > 0) {
-								//UE_LOG(LogTemp, Log, TEXT("NoteON	%u	%f	%u"), tick, time_us/1000000.0, Note_to_play_nr);
-								//UE_LOG(LogTemp, Log, TEXT("START: frame_nr: %u size: %u"), frame_nr, spawnpos.size());
+								//Note ON Event
 								spawnpos[frame_nr][Note_to_play_nr] += 1;
 							}
 							else {
 								//Note OFF Event
-								//UE_LOG(LogTemp, Log, TEXT("NoteOFF: frame_nr: %u size: %u"), frame_nr, stoppos.size());
 								stoppos[frame_nr][Note_to_play_nr] += 1;
 							}
 							Note_to_play_nr = -1;
@@ -594,16 +595,16 @@ void ABlockGenerator::BeginPlay()
 						else {
 							Controller_value = buf[pos];
 							Controller_type = -1;
-							#ifdef LOG_EVENTS
-								outfile_events << "Controller-End!\n";
+							#if LOG_EVENTS == 1
+								logfile << "Controller-End!\n";
 							#endif
 							UE_LOG(LogTemp, Log, TEXT("Controller-End!"));
 							in_deltatime = true;
 						}
 					}
 					else if (running_status <= 0xCF) {
-						#ifdef LOG_EVENTS
-							outfile_events << "Program Change: Channel " << (int)(running_status - 0xC0) << " = " << (int)buf[pos] << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "Program Change: Channel " << (int)(running_status - 0xC0) << " = " << (int)buf[pos] << "\n";
 						#endif
 						UE_LOG(LogTemp, Log, TEXT("Program Change: Channel %d = %u"), running_status - 0xC0, buf[pos]);
 						Instument_table[running_status - 0xC0] = buf[pos];
@@ -625,8 +626,8 @@ void ABlockGenerator::BeginPlay()
 					}
 					else if (in_SysEx == true) {
 						if (SysEx_len == -1) {
-							#ifdef LOG_EVENTS
-								outfile_events << "SysEx_len = " << (int)buf[pos] << "\n";
+							#if LOG_EVENTS == 1
+								logfile << "SysEx_len = " << (int)buf[pos] << "\n";
 							#endif
 							UE_LOG(LogTemp, Log, TEXT("SysEx_len = %u"), buf[pos]);
 							SysEx_len = buf[pos];
@@ -651,8 +652,8 @@ void ABlockGenerator::BeginPlay()
 						}
 					}
 					else {
-						#ifdef LOG_EVENTS
-							outfile_events << "Error: Unknown MIDI Data " << (int)buf[pos] << "\n";
+						#if LOG_EVENTS == 1
+							logfile << "Error: Unknown MIDI Data " << (int)buf[pos] << "\n";
 						#endif
 						UE_LOG(LogTemp, Error, TEXT("Error: Unknown MIDI Data %u"), buf[pos]);
 					}
