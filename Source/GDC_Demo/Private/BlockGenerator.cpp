@@ -17,11 +17,13 @@
 #include "Block.h"
 
 
-#define MIDI_OUT 0
 #if WITH_EDITOR == 1
 #define MIDI_PATH "A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid"
 #define LIMIT_VALUE 6000
 #define REDUCTION_VALUE 5
+#define MIDI_OUT 0
+#else
+#define MIDI_OUT 0
 #endif
 #define LOG_PATH "A:\\Music\\midi_data.csv"
 
@@ -33,7 +35,7 @@
 #define LOG_EVENTS 0
 #endif
 
-#if MIDI_OUT == 1 && WITH_EDITOR == 0
+#if MIDI_OUT == 1
 #include "../MidiInterface/Classes/RtMidi.h"
 #include <thread>
 #endif
@@ -41,7 +43,7 @@
 #include <iostream>
 #include <cstdlib>
 
-#if MIDI_OUT == 1 && WITH_EDITOR == 0
+#if MIDI_OUT == 1
 	RtMidiOut *midiout = 0;
 #endif
 std::vector<unsigned char> message;
@@ -100,25 +102,59 @@ void ABlockGenerator::BeginPlay()
 		#endif
 	#endif
 
+	const FText cmd_help_title = FText::FromName("UnrealPianofall cmd help");
 	const FText cmd_error_title = FText::FromName("Invalid command line argument");
-	FString arg_midi_fileName;
-	FString midi_fileName;
-	uint16 arg_spawnreduction;
-	uint32 arg_blocklimit;
+	FString arg_midi_fileName = "";
+	#ifndef REDUCTION_VALUE
+		uint16 arg_spawnreduction;
+	#endif
+	#ifndef LIMIT_VALUE
+		uint32 arg_blocklimit;
+	#endif
+	#if MIDI_OUT == 1
+		bool arg_midi_out_enabled;
+		bool arg_midi_out_off_enabled;
+	#endif
+	bool arg_capture_enabled;
+	bool arg_capture_resolution;
+	bool arg_help = false;
 
 	#ifdef MIDI_PATH
 		midi_fileName = MIDI_PATH;
 	#else
 		if (FParse::Value(FCommandLine::Get(), TEXT("midi"), arg_midi_fileName)) {
 			midi_fileName = arg_midi_fileName.Replace(TEXT("="), TEXT("")).Replace(TEXT("\""), TEXT("")); // replace quotes
-		
+
 		}
 		else {
 			//GetWorld()->GetFirstPlayerController()->ConsoleCommand("quit");
 			//FGenericPlatformMisc::RequestExit(true);
-			FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Invalid MIDI-file!\nCommand line argument missing!\nExample how to call this software:\n-midi=C:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid"), &cmd_error_title);
+			FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(
+				"Invalid MIDI-file!\n"
+				"Command line argument missing!\nExample how to call this software:\n"
+				"--midi=C:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid\n"
+				"Press OK to open the cmd help dialog")
+				, &cmd_error_title);
 		}
 	#endif
+
+	FParse::Bool(FCommandLine::Get(), TEXT("help"), arg_help);
+
+	if (arg_midi_fileName.IsEmpty() || arg_help == true) {
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(
+			"Command line arguments:\n"
+			"--midi=\"filepath\" => the MIDI file (.mid) to open\n"
+			"--limit value => The max amount of cubes in the scene\n"
+			"--reduction => Max amount of cubes per frame per note\n"
+			"--audio => Enable MIDI out on the default MIDI channel\n"
+			"--off => Enable sending MIDI off events to MIDI out\n"
+			"--capture => Saves a HiRes screenshot of every frame\n"
+			"--res => screenshot resolution multiplier (default: 4)\n"
+			"--help => Displays this help dialog box on launch"
+			), &cmd_help_title);
+		FGenericPlatformMisc::RequestExit(true);
+		return;
+	}
 	
 	
 	#ifdef LIMIT_VALUE
@@ -138,52 +174,62 @@ void ABlockGenerator::BeginPlay()
 		}
 	#endif
 
+	#if MIDI_OUT == 1
+	if (FParse::Bool(FCommandLine::Get(), TEXT("audio"), arg_midi_out_enabled)) {
+		midi_out_enabled = arg_midi_out_enabled;
+		if (FParse::Bool(FCommandLine::Get(), TEXT("off"), arg_midi_out_off_enabled)) {
+			midi_out_off_enabled = arg_midi_out_off_enabled;
+		}
+	}
+	#endif
+
+	if (FParse::Bool(FCommandLine::Get(), TEXT("capture"), arg_capture_enabled)) {
+		capture_enabled = arg_capture_enabled;
+	}
+
+	if (FParse::Bool(FCommandLine::Get(), TEXT("res"), arg_capture_resolution)) {
+		capture_resolution = arg_capture_resolution;
+	}
+	GetHighResScreenshotConfig().ResolutionMultiplier = capture_resolution; //Sets the res multiplier
 
 
 	std::ifstream midifile(*midi_fileName, std::ios::binary);
 
 	std::string portName;
-#if MIDI_OUT == 1 && WITH_EDITOR == 0
-	midiout = new RtMidiOut();
+	#if MIDI_OUT == 1
+		if (midi_out_enabled == true) {
+			midiout = new RtMidiOut();
 
+			UE_LOG(LogTemp, Log, TEXT("midiout->getPortCount(): %u"), midiout->getPortCount());
+			portName = midiout->getPortName(0);
+			UE_LOG(LogTemp, Log, TEXT("midiout->getPortName(0): %s"), *FString(portName.c_str()));
+			midiout->openPort(0);
 
-	UE_LOG(LogTemp, Log, TEXT("midiout->getPortCount(): %u"), midiout->getPortCount());
-	portName = midiout->getPortName(0);
-	UE_LOG(LogTemp, Log, TEXT("midiout->getPortName(0): %s"), *FString(portName.c_str()));
-	midiout->openPort(0);
+			// Program change: 192, 5
+			message.push_back(0xC0);
+			message.push_back(0x00);
+			midiout->sendMessage(&message);
+			//Needed for MIDI note events due to they are 3 byte long
+			message.push_back(0);
 
-	// Program change: 192, 5
-	message.push_back(0xC0);
-	message.push_back(0x00);
-	midiout->sendMessage(&message);
-	message.push_back(0);
+			/*
+			// Note On: 144, 64, 90
+			message[0] = 0x90;
+			message[1] = 64;
+			message[2] = 90;
+			midiout->sendMessage(&message);
+			std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
 
-	//message[0] = 0xF1;
-	//message[1] = 60;
-	//midiout->sendMessage(&message);
+			// Note Off: 128, 64, 40
+			message[0] = 0x80;
+			message[1] = 64;
+			message[2] = 0;
+			midiout->sendMessage(&message);
+			std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
+			*/
 
-	// Control Change: 176, 7, 100 (volume)
-	//message[0] = 176;
-	//message[1] = 7;
-	//message.push_back(100);
-	//midiout->sendMessage(&message);
-
-	// Note On: 144, 64, 90
-	message[0] = 0x90;
-	message[1] = 64;
-	message[2] = 90;
-	midiout->sendMessage(&message);
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
-
-																 // Note Off: 128, 64, 40
-	message[0] = 0x80;
-	message[1] = 64;
-	message[2] = 0;
-	midiout->sendMessage(&message);
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
-#endif
+		}
+	#endif
 
 	uint16 PPQ; //Remember: Never reset this between MTrks
 	uint32 usPQ = 500000; //120 PBM because 60000000/500000=500000
@@ -263,27 +309,34 @@ void ABlockGenerator::BeginPlay()
 		header[5] == 0 &&
 		header[6] == 0 &&
 		header[7] == 6) {
-		UE_LOG(LogTemp, Log, TEXT("Valid MIDI-file!"));
+		//UE_LOG(LogTemp, Log, TEXT("Valid MIDI-file!"));
 		PPQ = (header[12] << 8) + header[13];
 		if (PPQ == 0) {
+			#if LOG_EVENTS == 1
+				logfile << "Error: PPQ=0 => set to default value: 120\n";
+			#endif
+			std::cout << TEXT("Error: PPQ=0 => set to default value: 120") << std::endl;
 			UE_LOG(LogTemp, Error, TEXT("Error: PPQ=0 => set to default value: 120"));
 			PPQ = 120;
 		}
-		UE_LOG(LogTemp, Log, TEXT("PPQ: %u"), PPQ);
+		//UE_LOG(LogTemp, Log, TEXT("PPQ: %u"), PPQ);
 	}
 	else {
-		UE_LOG(LogTemp, Warning, TEXT("MIDI-File: Invalid header"));
+		#if LOG_EVENTS == 1
+				logfile << "Error: MIDI-File: Invalid header\nError: Invalid MIDI-file!\n";
+		#endif
+		std::cout << TEXT("MIDI-File: Invalid header") << std::endl << TEXT("Invalid MIDI-file!") << std::endl;
+		UE_LOG(LogTemp, Error, TEXT("MIDI-File: Invalid header"));
 		UE_LOG(LogTemp, Error, TEXT("Invalid MIDI-file!"));
 	}
 
 
 
 
-
 	do {
 		//UE_LOG(LogTemp, Log, TEXT("Read Block"));
-		UE_LOG(LogTemp, Log, TEXT("Status: spawnpos list size: %u"), spawnpos.size());
-		UE_LOG(LogTemp, Log, TEXT("Status: MTrk time [s]: %u"), time_us / 1000000);
+		//UE_LOG(LogTemp, Log, TEXT("Status: spawnpos list size: %u"), spawnpos.size());
+		//UE_LOG(LogTemp, Log, TEXT("Status: MTrk time [s]: %u"), time_us / 1000000);
 		midifile.read(filebuf, 1048576);
 		unsigned char *buf = (unsigned char *)filebuf;
 		pos = 0;
@@ -302,7 +355,7 @@ void ABlockGenerator::BeginPlay()
 						#if LOG_EVENTS == 1
 							logfile << "MTrk Found! MTrk_nr: " << MTrk_nr << "\n";
 						#endif
-						UE_LOG(LogTemp, Log, TEXT("MTrk Found! MTrk_nr: %u"), MTrk_nr);
+						//UE_LOG(LogTemp, Log, TEXT("MTrk Found! MTrk_nr: %u"), MTrk_nr);
 						tick = 0;
 						time_us = 0;
 						//usPQ = 500000; //NO NEVER DO THIS! IT'S WRONG! (No idea why)
@@ -341,17 +394,17 @@ void ABlockGenerator::BeginPlay()
 
 		if (Length_len > 0) {
 			for (; pos < 1048576; ++pos) {
-				_itoa((uint8)buf[pos], hexstr, 16);
 				#if LOG_EVENTS == 1
+					_itoa((uint8)buf[pos], hexstr, 16);
 					logfile << "Length Data: " << hexstr << "\n";
 				#endif
-				UE_LOG(LogTemp, Log, TEXT("Length Data: %s"), ANSI_TO_TCHAR(hexstr));
+				//UE_LOG(LogTemp, Log, TEXT("Length Data: %s"), ANSI_TO_TCHAR(hexstr));
 				MTrk_len += buf[pos] << (--Length_len * 8);
 				if (Length_len == 0) {
 					#if LOG_EVENTS == 1
 						logfile << "MTrk_len: " << (int)MTrk_len << "\n";
 					#endif
-					UE_LOG(LogTemp, Log, TEXT("MTrk_len: %u"), MTrk_len);
+					//UE_LOG(LogTemp, Log, TEXT("MTrk_len: %u"), MTrk_len);
 					++pos;
 					in_deltatime = true;
 					break;
@@ -363,8 +416,8 @@ void ABlockGenerator::BeginPlay()
 		if (MTrk_len > 0) {
 			for (; pos < 1048576; ++pos) {
 				if (MTrk_nr >= 37 && MTrk_nr <= 38 || MTrk_nr <= 2) {
-					_itoa((uint8)buf[pos], hexstr, 16);
 					#if LOG_EVENTS == 1
+						_itoa((uint8)buf[pos], hexstr, 16);
 						logfile << "MTrk_len: " << (int)MTrk_len << " Data: " << hexstr << " = " << (int)buf[pos] << " Pos: " << (int)pos << "\n";
 					#endif
 					//UE_LOG(LogTemp, Log, TEXT("MTrk_len: %u Data: %s = %d Pos: %u"), MTrk_len, ANSI_TO_TCHAR(hexstr), buf[pos], pos);
@@ -375,8 +428,8 @@ void ABlockGenerator::BeginPlay()
 						logfile << "MTrk-End!\n";
 						logfile << "Frames: " << frame_nr << "\n";
 					#endif
-					UE_LOG(LogTemp, Log, TEXT("MTrk-End!"));
-					UE_LOG(LogTemp, Log, TEXT("Frames: %u"), frame_nr);
+					//UE_LOG(LogTemp, Log, TEXT("MTrk-End!"));
+					//UE_LOG(LogTemp, Log, TEXT("Frames: %u"), frame_nr);
 					if (in_META == false || META_type != 0x2F) {
 						#if LOG_EVENTS == 1
 							logfile << "Invalid end-of-track MIDI-event!\n";
@@ -416,7 +469,7 @@ void ABlockGenerator::BeginPlay()
 						#if LOG_EVENTS == 1
 							logfile << "META_type = " << (int)buf[pos] << "\n";
 						#endif
-						UE_LOG(LogTemp, Log, TEXT("META_type = %u"), buf[pos]);
+						//UE_LOG(LogTemp, Log, TEXT("META_type = %u"), buf[pos]);
 						META_type = buf[pos];
 					}
 					else {
@@ -424,7 +477,7 @@ void ABlockGenerator::BeginPlay()
 							#if LOG_EVENTS == 1
 								logfile << "META_len = " << (int)buf[pos] << "\n";
 							#endif
-							UE_LOG(LogTemp, Log, TEXT("META_len = %u"), buf[pos]);
+							//UE_LOG(LogTemp, Log, TEXT("META_len = %u"), buf[pos]);
 							META_len = buf[pos];
 							MIDI_data_size = META_len;
 							if (META_len == 0) {
@@ -449,12 +502,12 @@ void ABlockGenerator::BeginPlay()
 									#if LOG_EVENTS == 1
 										logfile << "New usPQ = " << (int)usPQ << "\n";
 									#endif
-									UE_LOG(LogTemp, Log, TEXT("New usPQ = %u"), usPQ);
+									//UE_LOG(LogTemp, Log, TEXT("New usPQ = %u"), usPQ);
 								}
 								#if LOG_EVENTS == 1
 									logfile << "META-End!" << "\n";
 								#endif
-								UE_LOG(LogTemp, Log, TEXT("META-End!"));
+								//UE_LOG(LogTemp, Log, TEXT("META-End!"));
 								in_META = false;
 								in_deltatime = true;
 							}
@@ -476,14 +529,14 @@ void ABlockGenerator::BeginPlay()
 						#if LOG_EVENTS == 1
 							logfile << "Polyphonic Pressure: Channel " << (int)(buf[pos] - 0x90) << "\n";
 						#endif
-						UE_LOG(LogTemp, Log, TEXT("Polyphonic Pressure: Channel %u"), buf[pos] - 0x90);
+						//UE_LOG(LogTemp, Log, TEXT("Polyphonic Pressure: Channel %u"), buf[pos] - 0x90);
 						running_status = buf[pos];
 					}
 					else if (buf[pos] <= 0xBF) {
 						#if LOG_EVENTS == 1
 							logfile << "Controller Change: Channel " << (int)buf[pos] - 0xB0 << "\n";
 						#endif
-						UE_LOG(LogTemp, Log, TEXT("Controller Change: Channel %u"), buf[pos] - 0xB0);
+						//UE_LOG(LogTemp, Log, TEXT("Controller Change: Channel %u"), buf[pos] - 0xB0);
 						running_status = buf[pos];
 					}
 					else if (buf[pos] <= 0xCF) {
@@ -493,21 +546,21 @@ void ABlockGenerator::BeginPlay()
 						#if LOG_EVENTS == 1
 							logfile << "Channel Pressure Change: Channel " << (int)buf[pos] - 0xC0 << "\n";
 						#endif
-						UE_LOG(LogTemp, Log, TEXT("Channel Pressure Change: Channel %u"), buf[pos] - 0xC0);
+						//UE_LOG(LogTemp, Log, TEXT("Channel Pressure Change: Channel %u"), buf[pos] - 0xC0);
 						running_status = buf[pos];
 					}
 					else if (buf[pos] <= 0xEF) {
 						#if LOG_EVENTS == 1
 						logfile << "Pitch Bend: Channel " << (int)buf[pos] - 0xC0 << "\n";
 						#endif
-						UE_LOG(LogTemp, Log, TEXT("Pitch Bend: Channel %u"), buf[pos] - 0xC0);
+						//UE_LOG(LogTemp, Log, TEXT("Pitch Bend: Channel %u"), buf[pos] - 0xC0);
 						running_status = buf[pos];
 					}
 					else if (buf[pos] == 0xF0 || buf[pos] == 0xF7) {
 						#if LOG_EVENTS == 1
 							logfile << "SysEx/EscSeq: " << (int)buf[pos] - 0xC0 << "\n";
 						#endif
-						UE_LOG(LogTemp, Log, TEXT("SysEx/EscSeq: "), buf[pos] - 0xC0);
+						//UE_LOG(LogTemp, Log, TEXT("SysEx/EscSeq: "), buf[pos] - 0xC0);
 						SysEx_type = buf[pos];
 						in_SysEx = true;
 						running_status = 0;
@@ -516,7 +569,7 @@ void ABlockGenerator::BeginPlay()
 						#if LOG_EVENTS == 1
 							logfile << "META-Start" << "\n";
 						#endif
-						UE_LOG(LogTemp, Log, TEXT("META-Start"));
+						//UE_LOG(LogTemp, Log, TEXT("META-Start"));
 						MIDI_data_pos = 0;
 						META_len = -1;
 						META_type = -1;
@@ -598,7 +651,7 @@ void ABlockGenerator::BeginPlay()
 							#if LOG_EVENTS == 1
 								logfile << "Controller-End!\n";
 							#endif
-							UE_LOG(LogTemp, Log, TEXT("Controller-End!"));
+							//UE_LOG(LogTemp, Log, TEXT("Controller-End!"));
 							in_deltatime = true;
 						}
 					}
@@ -606,7 +659,7 @@ void ABlockGenerator::BeginPlay()
 						#if LOG_EVENTS == 1
 							logfile << "Program Change: Channel " << (int)(running_status - 0xC0) << " = " << (int)buf[pos] << "\n";
 						#endif
-						UE_LOG(LogTemp, Log, TEXT("Program Change: Channel %d = %u"), running_status - 0xC0, buf[pos]);
+						//UE_LOG(LogTemp, Log, TEXT("Program Change: Channel %d = %u"), running_status - 0xC0, buf[pos]);
 						Instument_table[running_status - 0xC0] = buf[pos];
 						in_deltatime = true;
 					}
@@ -629,7 +682,7 @@ void ABlockGenerator::BeginPlay()
 							#if LOG_EVENTS == 1
 								logfile << "SysEx_len = " << (int)buf[pos] << "\n";
 							#endif
-							UE_LOG(LogTemp, Log, TEXT("SysEx_len = %u"), buf[pos]);
+							//UE_LOG(LogTemp, Log, TEXT("SysEx_len = %u"), buf[pos]);
 							SysEx_len = buf[pos];
 							MIDI_data_size = buf[pos];
 							if (SysEx_len == 0) {
@@ -655,14 +708,13 @@ void ABlockGenerator::BeginPlay()
 						#if LOG_EVENTS == 1
 							logfile << "Error: Unknown MIDI Data " << (int)buf[pos] << "\n";
 						#endif
-						UE_LOG(LogTemp, Error, TEXT("Error: Unknown MIDI Data %u"), buf[pos]);
+						//UE_LOG(LogTemp, Error, TEXT("Error: Unknown MIDI Data %u"), buf[pos]);
 					}
 				}
 			}
 		}
 	} while (midifile);
-
-
+	midifile.close();
 }
 
 // Called every frame
@@ -681,7 +733,9 @@ void ABlockGenerator::Tick(float DeltaTime)
 	uint32 spawnnr;
 	uint32 stopnr;
 	uint32 spawncount;
-	uint32 stopcount;
+	#if MIDI_OUT == 1
+		uint32 stopcount;
+	#endif
 	FVector location;
 	FRotator rotate = FRotator(0.0f, 0.0f, 0.0f);
 	FActorSpawnParameters SpawnInfo;
@@ -698,32 +752,41 @@ void ABlockGenerator::Tick(float DeltaTime)
 			stopnr = spawnreduction;
 		}
 		if (spawnnr > 0) {
+			#if MIDI_OUT == 1
+			if (midi_out_enabled == true) {
+				for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
+					location = FVector((float)(90600.0f + spawncount * 100.0f), (float)(645000 - notenr * 100.0f), -110000.0f);
+					SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
+					blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
+
+					// Note On: 0x90, notenr, 0x64
+					//UE_LOG(LogTemp, Log, TEXT("ON: %u"), notenr);
+					message[0] = 0x90;
+					message[1] = notenr;
+					message[2] = 0x64;
+					midiout->sendMessage(&message);
+				}
+			}
+			#else
 			for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
 				location = FVector((float)(90600.0f + spawncount * 100.0f), (float)(645000 - notenr * 100.0f), -110000.0f);
 				SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
 				blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
-#if MIDI_OUT == 1 && WITH_EDITOR == 0
-				// Note On: 0x90, notenr, 0x64
-				//UE_LOG(LogTemp, Log, TEXT("ON: %u"), notenr);
-				message[0] = 0x90;
-				message[1] = notenr;
-				message[2] = 0x64;
-				midiout->sendMessage(&message);
-#endif
 			}
+			#endif
 		}
-		if (stopnr > 0) {
+		#if MIDI_OUT == 1 
+		if (midi_out_off_enabled == true && stopnr > 0) {
 			for (stopcount = 0; stopcount < stopnr; ++stopcount) {
-#if MIDI_OUT == 1 && WITH_EDITOR == 0 
 				// Note Off: 0x90, 64, 40
 				//UE_LOG(LogTemp, Log, TEXT("OFF: %u"), notenr);
 				//message[0] = 0x80;
 				//message[1] = notenr;
 				//message[2] = 0;
 				//midiout->sendMessage(&message);
-#endif
 			}
 		}
+		#endif
 	}
 
 	while (blocks.size() > blocklimit) {
@@ -732,29 +795,20 @@ void ABlockGenerator::Tick(float DeltaTime)
 	}
 
 
-	//++viewStats;
-	//if (viewStats == 10) {
-	//viewStats = 0;
-	//TArray<AActor*> FoundActors;
-	//FoundActors[0]->Destroy()
-	//UGameplayStatics::GetAllActorsOfClass(world, ABlock::StaticClass(), FoundActors);
-	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green,
-		  "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime)
-		+ "\nBlocks: " + FString::FromInt(blocks.size())
-		+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size())
-		+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60) 
-		+ "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
-	//}
+	#if WITH_EDITOR == 1
+		GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green,
+			  "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime)
+			+ "\nBlocks: " + FString::FromInt(blocks.size())
+			+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size())
+			+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60) 
+			+ "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
+	#endif
 
 
-	//ACharacter* myCharacter = UGameplayStatics::GetPlayerCharacter(world, 0);
-	//myCharacter->GetActorLocation();
-	//myCharacter->SetActorRotation();
-
-	//GetHighResScreenshotConfig().ResolutionMultiplier = 4; //Sets the res multiplier
-	//GetWorld()->GetGameViewport()->Viewport->TakeHighResScreenShot(); //Sets the flag in the viewport to take the high-res shot.
+	if (capture_enabled == true) {
+		GetWorld()->GetGameViewport()->Viewport->TakeHighResScreenShot(); //Sets the flag in the viewport to take the high-res shot.
+	}
+	//
 
 	++FrameNr;
-
 }
-

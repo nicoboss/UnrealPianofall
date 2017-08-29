@@ -19,9 +19,13 @@ public:
 	// Sets default values for this actor's properties
 	ABlockGenerator();
 
-	std::ifstream midifile;
-	uint16 spawnreduction = 5;
+	FString midi_fileName;
 	uint32 blocklimit = 6000;
+	uint16 spawnreduction = 5;
+	bool midi_out_enabled = false;
+	bool midi_out_off_enabled = false;
+	bool capture_enabled = false;
+	float capture_resolution = 4.0;
 	std::vector<std::array<uint32, 128>> spawnpos;
 	std::vector<std::array<uint32, 128>> stoppos;
 	std::queue<AActor*> blocks;
