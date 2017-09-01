@@ -18,9 +18,9 @@
 
 
 #if WITH_EDITOR == 1
-#define MIDI_PATH "A:\\Music\\BA_Rare_ASDF_Mode_rev_1.1.mid"
-#define LIMIT_VALUE 6000
-#define REDUCTION_VALUE 5
+#define MIDI_PATH "A:\\Music\\WreckingBall_1Mio.mid"
+#define LIMIT_VALUE 10000
+#define REDUCTION_VALUE 8
 #define MIDI_OUT 0
 #else
 #define MIDI_OUT 0
@@ -29,7 +29,7 @@
 
 #ifdef LOG_PATH
 #define LOG_NOTES 0
-#define LOG_EVENTS 1
+#define LOG_EVENTS 0
 #else
 #define LOG_NOTES 0 
 #define LOG_EVENTS 0
@@ -53,7 +53,6 @@ std::vector<unsigned char> message;
 // Sets default values
 ABlockGenerator::ABlockGenerator()
 {
-
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -86,11 +85,48 @@ ABlockGenerator::ABlockGenerator()
 
 }
 
+
+
 // Called when the game starts or when spawned
 void ABlockGenerator::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//#if WITH_EDITOR == 0
+	//	FScreenResolutionArray Resolutions;
+	//	uint32 maxres_pixel = 0;
+	//	FIntPoint maxres;
+	//	if (RHIGetAvailableResolutions(Resolutions, false))
+	//	{
+	//		for (const FScreenResolutionRHI& EachResolution : Resolutions)
+	//		{
+	//			if (maxres_pixel < EachResolution.Width * EachResolution.Height) {
+	//				maxres.X = EachResolution.Width;
+	//				maxres.Y = EachResolution.Height;
+	//			}
+	//		}
+	//	}
+	//	else
+	//	{
+	//		UE_LOG(LogTemp, Error, TEXT("Screen Resolutions could not be obtained"));
+	//	}
+
+	//	//FDisplayMetrics display_res = FDisplayMetrics();
+	//	//UGameViewportClient *vpcl = GEngine->GameViewport;
+	//	//FSlateRect Rect = vpcl->GetWindow()->GetFullScreenInfo();
+	//	//FVector2D ResolutionOpt = Rect.GetSize();
+	//	//FIntPoint native_res = FIntPoint(ResolutionOpt.X, ResolutionOpt.Y);
+	//	UE_LOG(LogTemp, Log, TEXT("Resolution: %u x %u"), maxres.X, maxres.Y);
+	//	//GEngine->GameUserSettings->SetScreenResolution(maxres);
+	//	UGameUserSettings* GameSettings = GEngine->GetGameUserSettings();
+	//	GameSettings->SetScreenResolution(maxres);
+	//	GameSettings->SetAntiAliasingQuality(16);
+	//	GameSettings->SetFullscreenMode(EWindowMode::Windowed);
+	//	GameSettings->SetVSyncEnabled(0);
+	//	GameSettings->ApplySettings(false);
+	//#endif
+
+		
 	//File compatible with http://www.fourmilab.ch/webtools/midicsv/
 	//It's very usefull to test my MIDI pharser
 	//Binary mode in order to get linux line-endings due to sed output has linux line endings
@@ -115,18 +151,19 @@ void ABlockGenerator::BeginPlay()
 		bool arg_midi_out_enabled;
 		bool arg_midi_out_off_enabled;
 	#endif
-	bool arg_capture_enabled;
-	bool arg_capture_resolution;
+	float arg_gravity = -980.0f;
+	float arg_seconds_wait_for_load;
 	bool arg_help = false;
+
+	arg_help = (FParse::Param(FCommandLine::Get(), TEXT("help")));
 
 	#ifdef MIDI_PATH
 		midi_fileName = MIDI_PATH;
 	#else
 		if (FParse::Value(FCommandLine::Get(), TEXT("midi"), arg_midi_fileName)) {
 			midi_fileName = arg_midi_fileName.Replace(TEXT("="), TEXT("")).Replace(TEXT("\""), TEXT("")); // replace quotes
-
 		}
-		else {
+		else if (arg_help == false) {
 			//GetWorld()->GetFirstPlayerController()->ConsoleCommand("quit");
 			//FGenericPlatformMisc::RequestExit(true);
 			FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(
@@ -138,24 +175,107 @@ void ABlockGenerator::BeginPlay()
 		}
 	#endif
 
-	FParse::Bool(FCommandLine::Get(), TEXT("help"), arg_help);
 
-	if (arg_midi_fileName.IsEmpty() || arg_help == true) {
+	#ifdef MIDI_PATH
+		if (arg_help == true) {
+	#else
+		if (arg_midi_fileName.IsEmpty() || arg_help == true) {
+	#endif
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(
 			"Command line arguments:\n"
 			"--midi=\"filepath\" => the MIDI file (.mid) to open\n"
-			"--limit value => The max amount of cubes in the scene\n"
+			"--PPQ => Overwrites the MIDI speed (pulses/quarter)\n"
+			"--limit => The max amount of cubes in the scene\n"
 			"--reduction => Max amount of cubes per frame per note\n"
+			"--gravity => Sets the worls gravity (dafault: -980.0)\n"
+			"--width => Width res. (use together with --height)\n"
+			"--height => Height res. (use together with --width)\n"
+			"--mode => 0=Fullscreen, 1=WFull, 2=Wind. 3=NumWind.\n"
 			"--audio => Enable MIDI out on the default MIDI channel\n"
 			"--off => Enable sending MIDI off events to MIDI out\n"
-			"--capture => Saves a HiRes screenshot of every frame\n"
-			"--res => screenshot resolution multiplier (default: 4)\n"
-			"--help => Displays this help dialog box on launch"
+			"--capture => Saves a screenshot of every frame\n"
+			"--speed => Camara speed multiplicator (default: 1)\n"
+			"--repeat => Repeat pre-defined camera movement\n"
+			"--free => Disable camera and let you control the view\n"
+			"--fix => Locks the camera after capture starts\n"
+			"--fps => Limit the fps/speed to an specified framerate\n"
+			"--vsync => Turn ON VSYNC (limits midi speed like --fps)\n"
+			"--low =>  Default instead of the ultra graphic settings\n"
+			"--wait => Seconds for world optimisation befor playing\n"
+			"default: 6 seconds for loading the whole scene\n"
+			"also useful in combination with --free in order to\n"
+			"bring the camera in position befor capture start\n"
+			"--help => Displays this help dialog box on launch\n"
+			"The captured screenshots will be saved under:\n"
+			+ FPaths::ScreenShotDir() + "\n"
+			"For more helpful information read the ReadMe on GitHub!\n"
 			), &cmd_help_title);
-		FGenericPlatformMisc::RequestExit(true);
-		return;
+	}
+
+
+	uint64 arg_PPQ;
+	if (FParse::Value(FCommandLine::Get(), TEXT("PPQ"), arg_PPQ)) {
+		PPQ_overwrite = arg_PPQ;
+	}
+
+	UGameUserSettings* GameSettings = GEngine->GetGameUserSettings();
+
+	int16 arg_resolution_width = -1;
+	int16 arg_resolution_height = -1;
+	FParse::Value(FCommandLine::Get(), TEXT("width"), arg_resolution_width);
+	FParse::Value(FCommandLine::Get(), TEXT("height"), arg_resolution_height);
+	if (arg_resolution_width > 200 && arg_resolution_height > 200) {
+		FIntPoint costomRes;
+		costomRes.X = arg_resolution_width;
+		costomRes.Y = arg_resolution_height;
+		GameSettings->SetScreenResolution(costomRes);
+	}
+
+	int8 resolution_mode = -1;
+	if (FParse::Value(FCommandLine::Get(), TEXT("mode"), resolution_mode)) {
+		switch (resolution_mode)
+		{
+			case 0:
+				GameSettings->SetFullscreenMode(EWindowMode::Fullscreen);
+				break;
+			case 1:
+				GameSettings->SetFullscreenMode(EWindowMode::WindowedFullscreen);
+				break;
+			case 2:
+				GameSettings->SetFullscreenMode(EWindowMode::Windowed);
+				break;
+			case 3:
+				GameSettings->SetFullscreenMode(EWindowMode::NumWindowModes);
+				break;
+			default:
+				GameSettings->SetFullscreenMode(EWindowMode::WindowedFullscreen);
+		}
+	}
+
+	uint16 framerate_limit;
+	if (FParse::Value(FCommandLine::Get(), TEXT("fps"), framerate_limit)) {
+		GameSettings->SetFrameRateLimit(framerate_limit);
+	} else {
+		GameSettings->SetFrameRateLimit(60);
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("vsync"))) {
+		GameSettings->SetVSyncEnabled(1);
+	} else {
+		GameSettings->SetVSyncEnabled(0);
 	}
 	
+	if (FParse::Param(FCommandLine::Get(), TEXT("low")) == false) {
+		GameSettings->SetAntiAliasingQuality(6);
+		GameSettings->SetPostProcessingQuality(3);
+		GameSettings->SetShadowQuality(3);
+		GameSettings->SetTextureQuality(3);
+		//GameSettings->SetFoliageQuality(3); //3 = best but deactivated by foliage settings => always best
+	}
+	
+	GameSettings->ApplySettings(false);
+
+
 	
 	#ifdef LIMIT_VALUE
 		blocklimit = LIMIT_VALUE;
@@ -165,7 +285,6 @@ void ABlockGenerator::BeginPlay()
 		}
 	#endif
 
-
 	#ifdef REDUCTION_VALUE
 		spawnreduction = REDUCTION_VALUE;
 	#else
@@ -173,6 +292,11 @@ void ABlockGenerator::BeginPlay()
 			spawnreduction = arg_spawnreduction;
 		}
 	#endif
+
+	if (FParse::Value(FCommandLine::Get(), TEXT("gravity"), arg_gravity)) {
+		AWorldSettings* WorldSet = GetWorld()->GetWorldSettings();
+		WorldSet->GlobalGravityZ = arg_gravity;
+	}
 
 	#if MIDI_OUT == 1
 	if (FParse::Bool(FCommandLine::Get(), TEXT("audio"), arg_midi_out_enabled)) {
@@ -183,14 +307,11 @@ void ABlockGenerator::BeginPlay()
 	}
 	#endif
 
-	if (FParse::Bool(FCommandLine::Get(), TEXT("capture"), arg_capture_enabled)) {
-		capture_enabled = arg_capture_enabled;
-	}
+	capture_enabled = FParse::Param(FCommandLine::Get(), TEXT("capture"));
 
-	if (FParse::Bool(FCommandLine::Get(), TEXT("res"), arg_capture_resolution)) {
-		capture_resolution = arg_capture_resolution;
+	if (FParse::Value(FCommandLine::Get(), TEXT("wait"), arg_seconds_wait_for_load)) {
+		frames_wait_for_load = (uint16)(arg_seconds_wait_for_load/60.0f);
 	}
-	GetHighResScreenshotConfig().ResolutionMultiplier = capture_resolution; //Sets the res multiplier
 
 
 	std::ifstream midifile(*midi_fileName, std::ios::binary);
@@ -295,9 +416,9 @@ void ABlockGenerator::BeginPlay()
 	std::stringstream ss;
 	uint32 MTrk_nr = 0; //First MTrk is number 1 to fit the midicsv standard
 	char filebuf[1048576] = { 0 };
-
-	char hexstr[100];
-
+	#if LOG_EVENTS == 1
+		char hexstr[100];
+	#endif
 	char headerbuf[14];
 	midifile.read(headerbuf, 14);
 	unsigned char *header = (unsigned char *)headerbuf;
@@ -310,7 +431,12 @@ void ABlockGenerator::BeginPlay()
 		header[6] == 0 &&
 		header[7] == 6) {
 		//UE_LOG(LogTemp, Log, TEXT("Valid MIDI-file!"));
-		PPQ = (header[12] << 8) + header[13];
+		if (PPQ_overwrite == 0) {
+			PPQ = (header[12] << 8) + header[13];
+		} else {
+			PPQ = PPQ_overwrite;
+		}
+		
 		if (PPQ == 0) {
 			#if LOG_EVENTS == 1
 				logfile << "Error: PPQ=0 => set to default value: 120\n";
@@ -323,7 +449,7 @@ void ABlockGenerator::BeginPlay()
 	}
 	else {
 		#if LOG_EVENTS == 1
-				logfile << "Error: MIDI-File: Invalid header\nError: Invalid MIDI-file!\n";
+			logfile << "Error: MIDI-File: Invalid header\nError: Invalid MIDI-file!\n";
 		#endif
 		std::cout << TEXT("MIDI-File: Invalid header") << std::endl << TEXT("Invalid MIDI-file!") << std::endl;
 		UE_LOG(LogTemp, Error, TEXT("MIDI-File: Invalid header"));
@@ -723,6 +849,16 @@ void ABlockGenerator::Tick(float DeltaTime)
 	//UE_LOG(LogTemp, Log, TEXT("spawnpos[0][77]: %u"), spawnpos[0][77]);
 	Super::Tick(DeltaTime);
 
+	if (wait_for_load == true) {
+		if (FrameNr == frames_wait_for_load) {
+			wait_for_load = false;
+			FrameNr = 0;
+			return;
+		}
+		++FrameNr;
+		return;
+	}
+
 	if (FrameNr > spawnpos.size() - 2) {
 		GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Done!");
 		++FrameNr;
@@ -769,7 +905,7 @@ void ABlockGenerator::Tick(float DeltaTime)
 			}
 			#else
 			for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-				location = FVector((float)(90600.0f + spawncount * 100.0f), (float)(645000 - notenr * 100.0f), -110000.0f);
+				location = FVector((float)(90600.0f - (spawnnr - 1)*50.0f + spawncount * 100.0f), (float)(645000.0f - notenr * 100.0f), -110000.0f);
 				SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
 				blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
 			}
@@ -806,9 +942,16 @@ void ABlockGenerator::Tick(float DeltaTime)
 
 
 	if (capture_enabled == true) {
-		GetWorld()->GetGameViewport()->Viewport->TakeHighResScreenShot(); //Sets the flag in the viewport to take the high-res shot.
+		//GetHighResScreenshotConfig().ResolutionMultiplier = capture_resolution; //Sets the res multiplier
+		//GetWorld()->GetGameViewport()->Viewport->TakeHighResScreenShot(); //Sets the flag in the viewport to take the high-res shot.
+		//GIsHighResScreenshot = true;
+		//GScreenshotResolutionX = 7680;
+		//GScreenshotResolutionY = 4320;
+		//FPaths::ScreenShotDir()
+		std::string frame_nr_str = std::to_string(FrameNr);
+		std::string screenshot_filename = std::string(8 - frame_nr_str.length(), '0') + frame_nr_str + ".png";
+		FScreenshotRequest::RequestScreenshot(FString(screenshot_filename.c_str()), false, false);
 	}
-	//
 
 	++FrameNr;
 }

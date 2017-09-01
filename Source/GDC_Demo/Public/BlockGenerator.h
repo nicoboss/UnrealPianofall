@@ -25,7 +25,10 @@ public:
 	bool midi_out_enabled = false;
 	bool midi_out_off_enabled = false;
 	bool capture_enabled = false;
-	float capture_resolution = 4.0;
+	bool wait_for_load = true;
+	uint64 PPQ_overwrite = 0;
+	//Note: Default value sould be equal for the CameraManager
+	uint16 frames_wait_for_load = 360;
 	std::vector<std::array<uint32, 128>> spawnpos;
 	std::vector<std::array<uint32, 128>> stoppos;
 	std::queue<AActor*> blocks;

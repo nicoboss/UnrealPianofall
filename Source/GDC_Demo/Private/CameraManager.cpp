@@ -18,6 +18,26 @@ ACameraManager::ACameraManager()
 void ACameraManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("free"))) {
+		this->Destroy();
+		return;
+	}
+
+	camera_fix = (FParse::Param(FCommandLine::Get(), TEXT("fix")));
+
+	float arg_camera_speed;
+	if (FParse::Value(FCommandLine::Get(), TEXT("speed"), arg_camera_speed)) {
+		camera_speed = arg_camera_speed;
+	}
+
+	float arg_seconds_wait_for_camera_load;
+	if (FParse::Value(FCommandLine::Get(), TEXT("wait"), arg_seconds_wait_for_camera_load)) {
+		frames_wait_for_camera_fix = (int)(arg_seconds_wait_for_camera_load * 60.0f);
+		camerapos_first_scene = arg_seconds_wait_for_camera_load * 60.0f * camera_speed + 120.0f;
+	}
+	
+	camera_repeat = (FParse::Param(FCommandLine::Get(), TEXT("repeat")));
 }
 
 // Called every frame
@@ -27,86 +47,102 @@ void ACameraManager::Tick(float DeltaTime)
 
 	UWorld* world = GetWorld();
 	APawn* PlayerPawn = world->GetFirstPlayerController()->GetPawn();
-	framenr += 1.0;
+	if (camera_fix == true) {
+		if (camera_fix_framecount <= frames_wait_for_camera_fix) {
+			if (camera_fix_framecount == frames_wait_for_camera_fix) {
+				camera_fix_vector = PlayerPawn->GetActorLocation();
+				camera_fix_rotator = PlayerPawn->GetActorRotation();
+			}
+			++camera_fix_framecount;
+		} else {
+			PlayerPawn->TeleportTo(camera_fix_vector, camera_fix_rotator);
+		}
+		return;
+	}
 
-	//GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Scene: " + FString::FromInt(scenenr) + " framenr: " + FString::FromInt(framenr));
+	camerapos += 1.0 * camera_speed;
+
+	//GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Scene: " + FString::FromInt(scenenr) + " camerapos: " + FString::FromInt(camerapos));
+	//this->Destroy();
 
 	switch (scenenr) {
 	case 0: {
-		if (framenr == 120.0) {
-			framenr = 0.0;
-			scenenr += 1;
+		//Teleportion due to affect of opposite gravity
+		PlayerPawn->TeleportTo(FVector(102225.0, 647403.0, -113628.0), FRotator(1.999872, 113628.0, 0.000002));
+		if (camerapos >= camerapos_first_scene) {
+			camerapos = 0.0;
+			++scenenr;
 		}
 		break;
 	}
 	case 1: {
-		FRotator rotate = FRotator((framenr / 10.0)-170, 0, 0);
+		FRotator rotate = FRotator((camerapos / 10.0)-170, 0, 0);
 		FVector NewLoc = centerpos + rotate.RotateVector(centerpos - playerstartpos);
 		FRotator NewRot = (centerposdown - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
-		if (framenr == 1800.0) {
-			framenr = 0.0;
+		if (camerapos >= 1800.0) {
+			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			scenenr += 1;
+			++scenenr;
 		}
 		break;
 	}
 	case 2: {
-		FVector NewLoc = playerlastpos + (playerstartpos - playerlastpos) * framenr / 600.0f;
+		FVector NewLoc = playerlastpos + (playerstartpos - playerlastpos) * camerapos / 600.0f;
 		FRotator NewRot = (centerpos - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
-		if (framenr == 650.0) {
-			framenr = 0.0;
+		if (camerapos >= 650.0) {
+			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			scenenr += 1;
+			++scenenr;
 		}
 		break;
 	}
 	case 3: {
-		FRotator rotate = FRotator(0, framenr / 4.0, 0);
+		FRotator rotate = FRotator(0, camerapos / 4.0, 0);
 		FVector NewLoc = centerpos + rotate.RotateVector(centerpos - playerstartpos);
 		FRotator NewRot = (centerposdown - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
-		if (framenr == 1000.0) {
-			framenr = 0.0;
+		if (camerapos >= 1000.0) {
+			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			scenenr += 1;
+			++scenenr;
 		}
 		break;
 	}
 	case 4: {
-		FVector NewLoc = playerlastpos + (playerstartpos - playerlastpos) * framenr / 600.0f;
+		FVector NewLoc = playerlastpos + (playerstartpos - playerlastpos) * camerapos / 600.0f;
 		FRotator NewRot = (centerposdown - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
-		if (framenr == 600.0) {
-			framenr = 0.0;
+		if (camerapos >= 600.0) {
+			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			scenenr += 1;
+			++scenenr;
 		}
 		break;
 	}
 	case 5: {
 		FVector Pos1 = FVector(38622.285, 703740.188, -107188.945);
 		FVector Pos2 = FVector(40000.000, 703400.875, -107189.617);
-		FVector NewLoc = Pos1 + (Pos2 - Pos1) * framenr / 60.0f;
+		FVector NewLoc = Pos1 + (Pos2 - Pos1) * camerapos / 60.0f;
 		FRotator NewRot = (centerposdown - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
-		if (framenr == 60.0) {
-			framenr = 0.0;
+		if (camerapos >= 60.0) {
+			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			scenenr += 1;
+			++scenenr;
 		}
 		break;
 	}
 	case 6: {
 		FVector Pos2 = FVector(59940.891, 680811.250, -119856.438);
-		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * framenr / 300.0f;
+		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * camerapos / 300.0f;
 		FRotator NewRot = (centerposdown - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
-		if (framenr == 300.0) {
-			framenr = 0.0;
+		if (camerapos >= 300.0) {
+			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			scenenr += 1;
+			++scenenr;
 		}
 		break;
 	}
@@ -115,79 +151,65 @@ void ACameraManager::Tick(float DeltaTime)
 		//FVector Pos2 = FVector(95185.313, 641331.438, -116694.117);
 		FVector Pos2 = FVector(96444.648, 634757.688, -117495.625);
 		//FVector Pos2 = FVector(100944.430, 607356.250, -118364.445);
-		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * framenr / 800.0f;
+		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * camerapos / 800.0f;
 		FRotator NewRot = (Pos2 - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
-		if (framenr == 800.0) {
-			framenr = 0.0;
+		if (camerapos >= 800.0) {
+			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			scenenr += 1;
+			++scenenr;
 		}
 		break;
 	}
 	case 8: {
 		FVector Pos1 = FVector(174994.547, 675927.188, -86679.375);
 		FVector Pos2 = FVector(-19848.641, 608025.688, -110734.070);
-		FVector NewLoc = Pos1 + (Pos2 - Pos1) * framenr / 1200.0f;
+		FVector NewLoc = Pos1 + (Pos2 - Pos1) * camerapos / 1200.0f;
 		FRotator NewRot = (centerposdown - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
-		if (framenr == 1200.0) {
-			framenr = 0.0;
+		if (camerapos >= 1200.0) {
+			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			scenenr += 1;
+			++scenenr;
 		}
 		break;
 	}
 	case 9: {
 		//FVector Pos2 = FVector(18697.531, 643321.875, -118784.719);
 		FVector Pos2 = FVector(64852.566, 650231.813, -120194.289);
-		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * framenr / 600.0f;
+		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * camerapos / 600.0f;
 		FRotator NewRot = (centerposdown - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
-		if (framenr == 600.0) {
-			framenr = 0.0;
+		if (camerapos >= 600.0) {
+			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			scenenr += 1;
+			++scenenr;
 		}
 		break;
 	}
 	case 10: {
 		//FVector Pos2 = FVector(25300.885, 646003.500, -120586.031);
 		FVector Pos2 = FVector(74327.547, 642531.375, -116940.477);
-		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * framenr / 600.0f;
+		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * camerapos / 600.0f;
 		FRotator NewRot = (centerposdown - NewLoc).Rotation();
 		PlayerPawn->TeleportTo(NewLoc, NewRot);
-		if (framenr == 600.0) {
-			framenr = 0.0;
+		if (camerapos >= 600.0) {
+			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			scenenr += 1;
 			//FVector NewLoc = FVector(97886.914, 644859.750,-115223.320);
 			FVector NewLoc = FVector(97823.852, 653343.125, -111936.500);
 			FRotator NewRot = (centerposdown - NewLoc).Rotation();
 			PlayerPawn->TeleportTo(NewLoc, NewRot);
-			this->Destroy();
+			if (camera_repeat == true) {
+				scenenr = 0;
+			} else {
+				++scenenr;
+				this->Destroy();
+			}
 		}
 		break;
 	}
 	
 	}
-	
-	
-	
-	
-	
-	
-	//FVector NewLoc = centerpos + rotate.RotateVector(centerpos - playerstartpos);
-	//FVector NewLoc = playerpos + (centerpos - playerpos) * framenr / 1000.0f;
-	
-	//FRotator NewRot = FRotator(0, 0, 0);
-	//PlayerPawn->TeleportTo(NewLoc, NewRot);
-	//PlayerPawn->SetActorLocation(NewLoc);
-	//PlayerPawn->SetActorRotation(0,0,l0)
-
-	//ACharacter* myCharacter = UGameplayStatics::GetPlayerCharacter(world, 0);
-
-	//myCharacter->SetActorLocation(playerpos + rotate.RotateVector(centerpos - playerpos));
-
 }
 

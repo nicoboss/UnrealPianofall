@@ -1,17 +1,24 @@
 diff -re ABoyandHisKite/Source/GDC_Demo/KiteDemo.Build.cs UnrealPianofall/Source/GDC_Demo/KiteDemo.Build.cs
-18,19c
+18,20c
             "Foliage",
             "Midi",
             "MidiAsset",
             "MidiInterface",
             "ProceduralAudio"
         });
+    }
 .
-9,11c
+9,16c
 
         PublicDependencyModuleNames.AddRange(new string[] 
-		{
+        {
             "Core", 
+            "CoreUObject", 
+            "Engine", 
+            "InputCore",
+            "MoviePlayer",
+            "AIModule",
+            "GameplayTasks",
 .
 Only in UnrealPianofall/Source/GDC_Demo/Private: Block.cpp
 Only in UnrealPianofall/Source/GDC_Demo/Private: BlockGenerator.cpp
@@ -52,6 +59,7 @@ void AGDC_DemoPC::BeginPlay()
 
 
 .
+Only in UnrealPianofall/Source/GDC_Demo/Private: LoadingScreenGameInstance.cpp
 Only in UnrealPianofall/Source/GDC_Demo/Public: Block.h
 Only in UnrealPianofall/Source/GDC_Demo/Public: BlockGenerator.h
 Only in UnrealPianofall/Source/GDC_Demo/Public: CameraManager.h
@@ -60,6 +68,7 @@ diff -re ABoyandHisKite/Source/GDC_Demo/Public/GDC_DemoPC.h UnrealPianofall/Sour
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 .
+Only in UnrealPianofall/Source/GDC_Demo/Public: LoadingScreenGameInstance.h
 diff -re ABoyandHisKite/Source/KiteDemo.Target.cs UnrealPianofall/Source/KiteDemo.Target.cs
 12c
     }
@@ -80,13 +89,66 @@ diff -re ABoyandHisKite/Config/DefaultEditor.ini UnrealPianofall/Config/DefaultE
 
 .
 diff -re ABoyandHisKite/Config/DefaultEngine.ini UnrealPianofall/Config/DefaultEngine.ini
+234,235c
+bSubstepping=True
+bSubsteppingAsync=True
+.
 200c
 GameName=UnrealPianofall
+
+[/Script/Engine.AutomationTestSettings]
+DefaultScreenshotResolution=(X=3840,Y=2160)
+
+[/Script/WindowsTargetPlatform.WindowsTargetSettings]
+Compiler=Default
+-TargetedRHIs=PCD3D_SM5
+-TargetedRHIs=PCD3D_SM4
++TargetedRHIs=SF_VULKAN_SM5
+MinimumOSVersion=MSOS_Vista
+AudioDevice=
+AudioSampleRate=48000
+AudioCallbackBufferFrameSize=1024
+AudioNumBuffersToEnqueue=1
+AudioMaxChannels=0
+AudioNumSourceWorkers=4
+.
+179c
+GameInstanceClass=/Script/KiteDemo.LoadingScreenGameInstance
 .
 173c
 EditorStartupMap=/Game/Maps/GoldenPath/GDC_Landscape_01.GDC_Landscape_01
 .
+48a
+r.SkinCache.SceneMemoryLimitInMB=128.000000
+r.ReflectionCaptureResolution=256
+.
+36c
+r.DefaultFeature.MotionBlur=False
+.
+12a
+ApplicationScale=1.000000
+.
 diff -re ABoyandHisKite/Config/DefaultGame.ini UnrealPianofall/Config/DefaultGame.ini
+7a
+[/Script/UnrealEd.ProjectPackagingSettings]
+BuildConfiguration=PPBC_Shipping
+FullRebuild=True
+ForDistribution=False
+.
 6c
 ProjectID=6EDECC78457B6BA9BEDF1E9B72E9BC55
+.
+diff -re ABoyandHisKite/Config/DefaultGameUserSettings.ini UnrealPianofall/Config/DefaultGameUserSettings.ini
+2,5c
+bUseVSync=False
+ResolutionSizeX=3840
+ResolutionSizeY=2160
+LastUserConfirmedResolutionSizeX=3840
+LastUserConfirmedResolutionSizeY=2160
+WindowPosX=-1
+WindowPosY=-1
+bUseDesktopResolutionForFullscreen=False
+FullscreenMode=3
+LastConfirmedFullscreenMode=3
+Version=5
 .

@@ -16,7 +16,19 @@ public:
 	ACameraManager();
 
 	uint8 scenenr = 0;
-	float framenr = 0.0;
+	float camerapos = 0;
+	//Note: Default value sould be equal for the BlockGenerator
+	uint32 frames_wait_for_camera_fix = 0;
+	float camerapos_first_scene = 360.0f;
+	bool camera_fix = false;
+
+	//Starting here with 1 because the increasement is at the end
+	uint32 camera_fix_framecount = 1;
+
+	FVector camera_fix_vector;
+	FRotator camera_fix_rotator;
+	float camera_speed = 1.0f;
+	bool camera_repeat = false;
 	FVector centerpos = FVector(90600.0f, 645000.0f - 6400.0f, -110000.0f);
 	FVector centerposdown = FVector(90600.0f, 645000.0f - 6400.0f, -114000.0f);
 	FVector playerstartpos = FVector(102225.0f, 647403.0f, -113628.0f);
