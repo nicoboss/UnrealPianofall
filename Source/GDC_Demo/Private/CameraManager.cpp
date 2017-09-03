@@ -19,12 +19,14 @@ void ACameraManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (FParse::Param(FCommandLine::Get(), TEXT("free"))) {
+	if (FParse::Param(FCommandLine::Get(), TEXT("-free"))
+		|| FParse::Param(FCommandLine::Get(), TEXT("free"))) {
 		this->Destroy();
 		return;
 	}
 
-	camera_fix = (FParse::Param(FCommandLine::Get(), TEXT("fix")));
+	camera_fix = (FParse::Param(FCommandLine::Get(), TEXT("-fix")))
+					| (FParse::Param(FCommandLine::Get(), TEXT("fix")));
 
 	float arg_camera_speed;
 	if (FParse::Value(FCommandLine::Get(), TEXT("speed"), arg_camera_speed)) {
@@ -37,7 +39,9 @@ void ACameraManager::BeginPlay()
 		camerapos_first_scene = arg_seconds_wait_for_camera_load * 60.0f * camera_speed + 120.0f;
 	}
 	
-	camera_repeat = (FParse::Param(FCommandLine::Get(), TEXT("repeat")));
+	camera_repeat = (FParse::Param(FCommandLine::Get(), TEXT("-repeat")))
+					| (FParse::Param(FCommandLine::Get(), TEXT("repeat")));
+
 }
 
 // Called every frame
@@ -65,11 +69,60 @@ void ACameraManager::Tick(float DeltaTime)
 	//GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Scene: " + FString::FromInt(scenenr) + " camerapos: " + FString::FromInt(camerapos));
 	//this->Destroy();
 
+	//Startpos: -69217.508   207054.313   -122535.336
+	switch (scenenr) {
+	case 0: {
+		//Teleportion due to affect of opposite gravity
+		FRotator NewRot = (FVector(-74520.0, 277950.0, -121770.0) - FVector(-69217.508, 297954.313, -122534.336)).Rotation();
+		PlayerPawn->TeleportTo(FVector(-69217.508, 297954.313, -122534.336), NewRot);
+		if (camerapos >= camerapos_first_scene - 120.0f) {
+			camerapos = 0.0;
+			++scenenr;
+		}
+		break;
+	}
+	case 1: {
+		FVector Pos1 = FVector(-69217.508, 297954.313, -122534.336);
+		//FVector Pos2 = FVector(-74572.813, 280494.938, -121857.836);
+		//FVector Pos2 = FVector(-74572.813, 280494.938, -122500.0);
+		////FVector Pos2 = FVector(-74572.813, 280300.0, -122840.0);
+		//FVector Pos2 = FVector(-74572.813, 280300.0, -121940.0);
+		FVector Pos2 = FVector(-74572.813, 280300.0, -120000.0);
+		FVector NewLoc = Pos1 + (Pos2 - Pos1) * camerapos / 900.0;
+		FRotator NewRot = (FVector(-74520.0, 277950.0, -121770.0) - NewLoc).Rotation();
+		PlayerPawn->TeleportTo(NewLoc, NewRot);
+		if (camerapos >= 900.0) {
+			camerapos = 0.0;
+			playerlastpos = NewLoc;
+			++scenenr;
+		}
+		break;
+	}
+	case 2: {
+		FVector Pos2 = FVector(-74983.930, 280599.625, -71643.664);
+		FVector NewLoc = playerlastpos + (Pos2 - playerlastpos) * camerapos / 800.0f;
+		FRotator NewRot = (playerlastpos - NewLoc).Rotation();
+		PlayerPawn->TeleportTo(NewLoc, NewRot);
+		if (camerapos >= 1500.0) {
+			camerapos = 0.0;
+			playerlastpos = NewLoc;
+			++scenenr;
+			this->Destroy();
+		}
+		break;
+	}
+	}
+
+	return;
+
+
 	switch (scenenr) {
 	case 0: {
 		//Teleportion due to affect of opposite gravity
 		PlayerPawn->TeleportTo(FVector(102225.0, 647403.0, -113628.0), FRotator(1.999872, 113628.0, 0.000002));
 		if (camerapos >= camerapos_first_scene) {
+			//For --repeate in case it jumps to scene 0
+			camerapos_first_scene -= frames_wait_for_camera_fix * camera_speed;
 			camerapos = 0.0;
 			++scenenr;
 		}
@@ -201,7 +254,7 @@ void ACameraManager::Tick(float DeltaTime)
 			FRotator NewRot = (centerposdown - NewLoc).Rotation();
 			PlayerPawn->TeleportTo(NewLoc, NewRot);
 			if (camera_repeat == true) {
-				scenenr = 0;
+				scenenr = 1;
 			} else {
 				++scenenr;
 				this->Destroy();

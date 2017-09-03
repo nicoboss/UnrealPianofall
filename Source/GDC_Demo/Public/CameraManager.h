@@ -19,7 +19,7 @@ public:
 	float camerapos = 0;
 	//Note: Default value sould be equal for the BlockGenerator
 	uint32 frames_wait_for_camera_fix = 0;
-	float camerapos_first_scene = 360.0f;
+	float camerapos_first_scene = 540.0f;
 	bool camera_fix = false;
 
 	//Starting here with 1 because the increasement is at the end

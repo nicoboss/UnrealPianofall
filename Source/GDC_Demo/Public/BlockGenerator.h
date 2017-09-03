@@ -20,6 +20,7 @@ public:
 	ABlockGenerator();
 
 	FString midi_fileName;
+	FString screenshot_path_savedir = "";
 	uint32 blocklimit = 6000;
 	uint16 spawnreduction = 5;
 	bool midi_out_enabled = false;
@@ -28,7 +29,7 @@ public:
 	bool wait_for_load = true;
 	uint64 PPQ_overwrite = 0;
 	//Note: Default value sould be equal for the CameraManager
-	uint16 frames_wait_for_load = 360;
+	uint16 frames_wait_for_load = 420;
 	std::vector<std::array<uint32, 128>> spawnpos;
 	std::vector<std::array<uint32, 128>> stoppos;
 	std::queue<AActor*> blocks;

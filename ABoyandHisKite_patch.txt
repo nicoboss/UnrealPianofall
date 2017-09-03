@@ -9,7 +9,6 @@ diff -re ABoyandHisKite/Source/GDC_Demo/KiteDemo.Build.cs UnrealPianofall/Source
     }
 .
 9,16c
-
         PublicDependencyModuleNames.AddRange(new string[] 
         {
             "Core", 
@@ -23,6 +22,12 @@ diff -re ABoyandHisKite/Source/GDC_Demo/KiteDemo.Build.cs UnrealPianofall/Source
 Only in UnrealPianofall/Source/GDC_Demo/Private: Block.cpp
 Only in UnrealPianofall/Source/GDC_Demo/Private: BlockGenerator.cpp
 Only in UnrealPianofall/Source/GDC_Demo/Private: CameraManager.cpp
+diff -re ABoyandHisKite/Source/GDC_Demo/Private/FaunaSpawnerComponent.cpp UnrealPianofall/Source/GDC_Demo/Private/FaunaSpawnerComponent.cpp
+21a
+	State = EFaunaSpawnerState::Populated;
+	return 0;
+
+.
 diff -re ABoyandHisKite/Source/GDC_Demo/Private/GDC_DemoCharacter.cpp UnrealPianofall/Source/GDC_Demo/Private/GDC_DemoCharacter.cpp
 78,81c
 	//PlayerInputComponent->BindAxis("Turn", this, &AGDC_DemoCharacter::Turn);
@@ -69,6 +74,10 @@ diff -re ABoyandHisKite/Source/GDC_Demo/Public/GDC_DemoPC.h UnrealPianofall/Sour
 	virtual void BeginPlay() override;
 .
 Only in UnrealPianofall/Source/GDC_Demo/Public: LoadingScreenGameInstance.h
+diff -re ABoyandHisKite/Source/GDC_DemoEditor/KiteDemoEditor.Build.cs UnrealPianofall/Source/GDC_DemoEditor/KiteDemoEditor.Build.cs
+26c
+        });
+.
 diff -re ABoyandHisKite/Source/KiteDemo.Target.cs UnrealPianofall/Source/KiteDemo.Target.cs
 12c
     }
@@ -103,6 +112,9 @@ DefaultScreenshotResolution=(X=3840,Y=2160)
 Compiler=Default
 -TargetedRHIs=PCD3D_SM5
 -TargetedRHIs=PCD3D_SM4
+-TargetedRHIs=PCD3D_SM5
++TargetedRHIs=PCD3D_SM4
++TargetedRHIs=PCD3D_SM5
 +TargetedRHIs=SF_VULKAN_SM5
 MinimumOSVersion=MSOS_Vista
 AudioDevice=
@@ -129,14 +141,22 @@ r.DefaultFeature.MotionBlur=False
 ApplicationScale=1.000000
 .
 diff -re ABoyandHisKite/Config/DefaultGame.ini UnrealPianofall/Config/DefaultGame.ini
-7a
+8a
 [/Script/UnrealEd.ProjectPackagingSettings]
 BuildConfiguration=PPBC_Shipping
 FullRebuild=True
 ForDistribution=False
 .
-6c
+6,7c
 ProjectID=6EDECC78457B6BA9BEDF1E9B72E9BC55
+ProjectName=UnrealPianofall
+ProjectDisplayedTitle=NSLOCTEXT("[/Script/EngineSettings]", "4CC27133471D42821DD411B9B3DF1EC1", "UnrealPianofall")
+ProjectDebugTitleInfo=NSLOCTEXT("[/Script/EngineSettings]", "3A8EF3C34736D562DCD560BE80BA4D1F", "UnrealPianofall")
+CompanyDistinguishedName=Nico Bosshard
+Description=UnrealPianofall
+CompanyName=NB Game Development
+Homepage="https://github.com/nicoboss/UnrealPianofall"
+SupportContact="https://github.com/nicoboss/UnrealPianofall/issues"
 .
 diff -re ABoyandHisKite/Config/DefaultGameUserSettings.ini UnrealPianofall/Config/DefaultGameUserSettings.ini
 2,5c

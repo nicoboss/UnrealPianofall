@@ -18,8 +18,8 @@
 
 
 #if WITH_EDITOR == 1
-#define MIDI_PATH "A:\\Music\\WreckingBall_1Mio.mid"
-#define LIMIT_VALUE 10000
+#define MIDI_PATH "A:/Music/WreckingBall_1Mio.mid"
+#define LIMIT_VALUE 250000
 #define REDUCTION_VALUE 8
 #define MIDI_OUT 0
 #else
@@ -140,7 +140,7 @@ void ABlockGenerator::BeginPlay()
 
 	const FText cmd_help_title = FText::FromName("UnrealPianofall cmd help");
 	const FText cmd_error_title = FText::FromName("Invalid command line argument");
-	FString arg_midi_fileName = "";
+	
 	#ifndef REDUCTION_VALUE
 		uint16 arg_spawnreduction;
 	#endif
@@ -153,13 +153,13 @@ void ABlockGenerator::BeginPlay()
 	#endif
 	float arg_gravity = -980.0f;
 	float arg_seconds_wait_for_load;
-	bool arg_help = false;
-
-	arg_help = (FParse::Param(FCommandLine::Get(), TEXT("help")));
+	bool arg_help = (FParse::Param(FCommandLine::Get(), TEXT("-help")))
+					| (FParse::Param(FCommandLine::Get(), TEXT("help")));
 
 	#ifdef MIDI_PATH
 		midi_fileName = MIDI_PATH;
 	#else
+		FString arg_midi_fileName = "";
 		if (FParse::Value(FCommandLine::Get(), TEXT("midi"), arg_midi_fileName)) {
 			midi_fileName = arg_midi_fileName.Replace(TEXT("="), TEXT("")).Replace(TEXT("\""), TEXT("")); // replace quotes
 		}
@@ -175,6 +175,11 @@ void ABlockGenerator::BeginPlay()
 		}
 	#endif
 
+	FString arg_screenshot_path_savedir = "";
+	if (FParse::Value(FCommandLine::Get(), TEXT("path"), arg_screenshot_path_savedir)) {
+		screenshot_path_savedir = arg_screenshot_path_savedir.Replace(TEXT("="), TEXT("")).Replace(TEXT("\""), TEXT("")); // replace quotes
+	}
+
 
 	#ifdef MIDI_PATH
 		if (arg_help == true) {
@@ -184,6 +189,7 @@ void ABlockGenerator::BeginPlay()
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(
 			"Command line arguments:\n"
 			"--midi=\"filepath\" => the MIDI file (.mid) to open\n"
+			"--path=\"dirpath\" => Screenshot save directory"
 			"--PPQ => Overwrites the MIDI speed (pulses/quarter)\n"
 			"--limit => The max amount of cubes in the scene\n"
 			"--reduction => Max amount of cubes per frame per note\n"
@@ -202,11 +208,11 @@ void ABlockGenerator::BeginPlay()
 			"--vsync => Turn ON VSYNC (limits midi speed like --fps)\n"
 			"--low =>  Default instead of the ultra graphic settings\n"
 			"--wait => Seconds for world optimisation befor playing\n"
-			"default: 6 seconds for loading the whole scene\n"
+			"default: 7 seconds for loading the whole scene\n"
 			"also useful in combination with --free in order to\n"
 			"bring the camera in position befor capture start\n"
 			"--help => Displays this help dialog box on launch\n"
-			"The captured screenshots will be saved under:\n"
+			"By default captured screenshots will be saved under:\n"
 			+ FPaths::ScreenShotDir() + "\n"
 			"For more helpful information read the ReadMe on GitHub!\n"
 			), &cmd_help_title);
@@ -247,8 +253,6 @@ void ABlockGenerator::BeginPlay()
 			case 3:
 				GameSettings->SetFullscreenMode(EWindowMode::NumWindowModes);
 				break;
-			default:
-				GameSettings->SetFullscreenMode(EWindowMode::WindowedFullscreen);
 		}
 	}
 
@@ -259,13 +263,15 @@ void ABlockGenerator::BeginPlay()
 		GameSettings->SetFrameRateLimit(60);
 	}
 
-	if (FParse::Param(FCommandLine::Get(), TEXT("vsync"))) {
+	if (FParse::Param(FCommandLine::Get(), TEXT("-vsync"))
+		|| FParse::Param(FCommandLine::Get(), TEXT("vsync"))) {
 		GameSettings->SetVSyncEnabled(1);
 	} else {
 		GameSettings->SetVSyncEnabled(0);
 	}
 	
-	if (FParse::Param(FCommandLine::Get(), TEXT("low")) == false) {
+	if ((FParse::Param(FCommandLine::Get(), TEXT("-low")) == false)
+		&& (FParse::Param(FCommandLine::Get(), TEXT("low")) == false)) {
 		GameSettings->SetAntiAliasingQuality(6);
 		GameSettings->SetPostProcessingQuality(3);
 		GameSettings->SetShadowQuality(3);
@@ -307,7 +313,8 @@ void ABlockGenerator::BeginPlay()
 	}
 	#endif
 
-	capture_enabled = FParse::Param(FCommandLine::Get(), TEXT("capture"));
+	capture_enabled = (FParse::Param(FCommandLine::Get(), TEXT("-capture")))
+						| (FParse::Param(FCommandLine::Get(), TEXT("capture")));
 
 	if (FParse::Value(FCommandLine::Get(), TEXT("wait"), arg_seconds_wait_for_load)) {
 		frames_wait_for_load = (uint16)(arg_seconds_wait_for_load/60.0f);
@@ -852,7 +859,7 @@ void ABlockGenerator::Tick(float DeltaTime)
 	if (wait_for_load == true) {
 		if (FrameNr == frames_wait_for_load) {
 			wait_for_load = false;
-			FrameNr = 0;
+			FrameNr = 7495;
 			return;
 		}
 		++FrameNr;
@@ -860,86 +867,91 @@ void ABlockGenerator::Tick(float DeltaTime)
 	}
 
 	if (FrameNr > spawnpos.size() - 2) {
-		GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Done!");
+		#if WITH_EDITOR == 1
+			GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Done!");
+		#endif
 		++FrameNr;
-		return;
+		//If return, rendering will be stoped after the MIDI is over
+		//return;
 	}
+	else {
+		uint8 notenr;
+		uint32 spawnnr;
+		uint32 stopnr;
+		uint32 spawncount;
+		#if MIDI_OUT == 1
+			uint32 stopcount;
+		#endif
+		FVector location;
+		FRotator rotate = FRotator(0.0f, 0.0f, 0.0f);
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnInfo.Owner = this;
+		UWorld* world = GetWorld();
+		for (notenr = 0; notenr < 128; ++notenr) {
+			spawnnr = spawnpos[FrameNr][notenr];
+			stopnr = stoppos[FrameNr][notenr];
+			if (spawnnr > spawnreduction) {
+				spawnnr = spawnreduction;
+			}
+			if (stopnr > spawnreduction) {
+				stopnr = spawnreduction;
+			}
+			if (spawnnr > 0) {
+				#if MIDI_OUT == 1
+				if (midi_out_enabled == true) {
+					for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
+						location = FVector((float)(90600.0f + spawncount * 100.0f), (float)(645000 - notenr * 100.0f), -110000.0f);
+						SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
+						blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
 
-	uint8 notenr;
-	uint32 spawnnr;
-	uint32 stopnr;
-	uint32 spawncount;
-	#if MIDI_OUT == 1
-		uint32 stopcount;
-	#endif
-	FVector location;
-	FRotator rotate = FRotator(0.0f, 0.0f, 0.0f);
-	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	SpawnInfo.Owner = this;
-	UWorld* world = GetWorld();
-	for (notenr = 0; notenr < 128; ++notenr) {
-		spawnnr = spawnpos[FrameNr][notenr];
-		stopnr = stoppos[FrameNr][notenr];
-		if (spawnnr > spawnreduction) {
-			spawnnr = spawnreduction;
-		}
-		if (stopnr > spawnreduction) {
-			stopnr = spawnreduction;
-		}
-		if (spawnnr > 0) {
-			#if MIDI_OUT == 1
-			if (midi_out_enabled == true) {
+						// Note On: 0x90, notenr, 0x64
+						//UE_LOG(LogTemp, Log, TEXT("ON: %u"), notenr);
+						message[0] = 0x90;
+						message[1] = notenr;
+						message[2] = 0x64;
+						midiout->sendMessage(&message);
+					}
+				}
+				#else
 				for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-					location = FVector((float)(90600.0f + spawncount * 100.0f), (float)(645000 - notenr * 100.0f), -110000.0f);
+					//location = FVector((float)(90600.0f - (spawnnr - 1)*50.0f + spawncount * 100.0f), (float)(645000.0f - notenr * 100.0f), -110000.0f);
+					//FVector(-74520.0, 277950.0, -121770.0)
+					location = FVector((float)(-74520.0f - (spawnnr - 1)*50.0f + spawncount * 100.0f), (float)(277950.0f - notenr * 100.0f), -105000.0f);
 					SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
 					blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
-
-					// Note On: 0x90, notenr, 0x64
-					//UE_LOG(LogTemp, Log, TEXT("ON: %u"), notenr);
-					message[0] = 0x90;
-					message[1] = notenr;
-					message[2] = 0x64;
-					midiout->sendMessage(&message);
 				}
+				#endif
 			}
-			#else
-			for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-				location = FVector((float)(90600.0f - (spawnnr - 1)*50.0f + spawncount * 100.0f), (float)(645000.0f - notenr * 100.0f), -110000.0f);
-				SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
-				blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
+			#if MIDI_OUT == 1 
+			if (midi_out_off_enabled == true && stopnr > 0) {
+				for (stopcount = 0; stopcount < stopnr; ++stopcount) {
+					// Note Off: 0x90, 64, 40
+					//UE_LOG(LogTemp, Log, TEXT("OFF: %u"), notenr);
+					//message[0] = 0x80;
+					//message[1] = notenr;
+					//message[2] = 0;
+					//midiout->sendMessage(&message);
+				}
 			}
 			#endif
 		}
-		#if MIDI_OUT == 1 
-		if (midi_out_off_enabled == true && stopnr > 0) {
-			for (stopcount = 0; stopcount < stopnr; ++stopcount) {
-				// Note Off: 0x90, 64, 40
-				//UE_LOG(LogTemp, Log, TEXT("OFF: %u"), notenr);
-				//message[0] = 0x80;
-				//message[1] = notenr;
-				//message[2] = 0;
-				//midiout->sendMessage(&message);
-			}
+
+		while (blocks.size() > blocklimit) {
+			blocks.front()->Destroy();
+			blocks.pop();
 		}
+
+
+		#if WITH_EDITOR == 1
+			GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green,
+				  "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime)
+				+ "\nBlocks: " + FString::FromInt(blocks.size())
+				+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size())
+				+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60) 
+				+ "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
 		#endif
 	}
-
-	while (blocks.size() > blocklimit) {
-		blocks.front()->Destroy();
-		blocks.pop();
-	}
-
-
-	#if WITH_EDITOR == 1
-		GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green,
-			  "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime)
-			+ "\nBlocks: " + FString::FromInt(blocks.size())
-			+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size())
-			+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60) 
-			+ "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
-	#endif
-
 
 	if (capture_enabled == true) {
 		//GetHighResScreenshotConfig().ResolutionMultiplier = capture_resolution; //Sets the res multiplier
@@ -950,7 +962,7 @@ void ABlockGenerator::Tick(float DeltaTime)
 		//FPaths::ScreenShotDir()
 		std::string frame_nr_str = std::to_string(FrameNr);
 		std::string screenshot_filename = std::string(8 - frame_nr_str.length(), '0') + frame_nr_str + ".png";
-		FScreenshotRequest::RequestScreenshot(FString(screenshot_filename.c_str()), false, false);
+		FScreenshotRequest::RequestScreenshot(screenshot_path_savedir + FString(screenshot_filename.c_str()), false, false);
 	}
 
 	++FrameNr;
