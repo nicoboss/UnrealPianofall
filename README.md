@@ -33,36 +33,36 @@ Instead of a fancy GUI I decided to only use command line arguments so that you 
 
 Excample how to call UnrealPianofall from CMD/PowerShell/BatchFile: .\UnrealPianofall_KiteBuild.exe midi="C:/Users/nico/Documents/UnrealPianofall_KiteBuild/WreckingBall_1Mio.mid" --path="C:/Users/nico/Documents/Out/" --limit 250000 --reduction 8 --capture --repeat
 
---midi=\"filepath\" => the MIDI file (.mid) to open
---path=\"dirpath\" => Screenshot save directory"
---PPQ => Overwrites the MIDI speed (pulses/quarter)
---limit => The max amount of cubes in the scene
---reduction => Max amount of cubes per frame per note
---block => 0=Cube (default), 1=Piano key, 2=Apple
---block_x => Spawn X-position (default: 90600.0)
---block_y => Spawn y-position (default: 645000.0)
---block_z => Spawn Z-position (default: -110000.0f)
---blockscale => Block size multiplier (default: 1.0)"
---material => 0=default, 1=basic, 2-43=starter [A-Z]
---gravity => Sets the worls gravity (dafault: -980.0)
---spawndist_x => Spawn X-offset multip. (default: 100)
---spawndist_y => Spawn Y-offset multip. (default: 100)
---width => Width res. (use together with --height)
---height => Height res. (use together with --width)
---mode => 0=Fullscreen, 1=WFull, 2=Wind. 3=NumWind.
---audio => Enable MIDI out on the default MIDI channel
---off => Enable sending MIDI off events to MIDI out
---capture => Saves a screenshot of every frame
---speed => Camara speed multiplicator (default: 1)
---no-repeat => Don't repeat pre-defined camera movement
---free => Disable camera and let you control the view
---tp => Teleports the player to the blocks if --free
---fix => Locks the camera after capture starts
---no-loading-movie => Disable the loading Movie
---fps => Limit the fps/speed to an specified framerate
---vsync => Turn ON VSYNC (limits midi speed like --fps)
---low =>  Default instead of the ultra graphic settings
---wait => Seconds for world optimisation befor playing
+- --midi=\"filepath\" => the MIDI file (.mid) to open
+- --path=\"dirpath\" => Screenshot save directory"
+- --PPQ => Overwrites the MIDI speed (pulses/quarter)
+- --limit => The max amount of cubes in the scene
+- --reduction => Max amount of cubes per frame per note
+- --block => 0=Cube (default), 1=Piano key, 2=Apple
+- --block_x => Spawn X-position (default: 90600.0)
+- --block_y => Spawn y-position (default: 645000.0)
+- --block_z => Spawn Z-position (default: -110000.0f)
+- --blockscale => Block size multiplier (default: 1.0)"
+- --material => 0=default, 1=basic, 2-43=starter [A-Z]
+- --gravity => Sets the worls gravity (dafault: -980.0)
+- --spawndist_x => Spawn X-offset multip. (default: 100)
+- --spawndist_y => Spawn Y-offset multip. (default: 100)
+- --width => Width res. (use together with --height)
+- --height => Height res. (use together with --width)
+- --mode => 0=Fullscreen, 1=WFull, 2=Wind. 3=NumWind.
+- --audio => Enable MIDI out on the default MIDI channel
+- --off => Enable sending MIDI off events to MIDI out
+- --capture => Saves a screenshot of every frame
+- --speed => Camara speed multiplicator (default: 1)
+- --no-repeat => Don't repeat pre-defined camera movement
+- --free => Disable camera and let you control the view
+- --tp => Teleports the player to the blocks if --free
+- --fix => Locks the camera after capture starts
+- --no-loading-movie => Disable the loading Movie
+- --fps => Limit the fps/speed to an specified framerate
+- --vsync => Turn ON VSYNC (limits midi speed like --fps)
+- --low =>  Default instead of the ultra graphic settings
+- --wait => Seconds for world optimisation befor playing
 default: 7 seconds for loading the whole scene
 also useful in combination with --free in order to
 bring the camera in position befor capture start
@@ -78,6 +78,6 @@ bring the camera in position befor capture start
 ## How to contribute
 - Create Pull Requests
 - Report bugs, tell me your ideas or ask questions using GitHub's issue system
-- Please nevetr post any Engine- or Kite Demo source code because https://www.unrealengine.com/en-US/eula doesn't allow it but instead make patches which doesn't contain any such code like I did for ABoyandHisKite_patch.txt
+- Please never post any Engine- or Kite Demo source code because https://www.unrealengine.com/en-US/eula doesn't allow it but instead make patches which doesn't contain any such code like I did for ABoyandHisKite_patch.txt
 
 Have fun!
