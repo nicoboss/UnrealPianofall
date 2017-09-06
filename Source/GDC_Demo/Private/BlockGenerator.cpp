@@ -16,16 +16,16 @@
 #include <fstream>
 #include "Block.h"
 
-
+#define UNREALPIANOFALL_VERSION "v1.0.1 (06.09.2017)"
 #if WITH_EDITOR == 1
 #define MIDI_PATH "A:/Music/WreckingBall_1Mio.mid"
-#define LIMIT_VALUE 250000
-#define REDUCTION_VALUE 8
+#define LIMIT_VALUE 6000
+#define REDUCTION_VALUE 4
 #define MIDI_OUT 0
 #else
 #define MIDI_OUT 0
 #endif
-#define LOG_PATH "A:\\Music\\midi_data.csv"
+#define LOG_PATH "A:/Music/midi_data.csv"
 
 #ifdef LOG_PATH
 #define LOG_NOTES 0
@@ -48,17 +48,78 @@
 #endif
 std::vector<unsigned char> message;
 
-//int viewStats = 0;
-
 // Sets default values
 ABlockGenerator::ABlockGenerator()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> FoundMesh(TEXT("/Engine/EditorMeshes/EditorCube.EditorCube"));
-	static ConstructorHelpers::FObjectFinder<UMaterial> FoundMaterial(TEXT("/Game/UnrealPianofall/Materials/M_Advanced_Block"));
+	const TCHAR *blocktypes[] = {
+		TEXT("/Engine/EditorMeshes/EditorCube.EditorCube"),
+		TEXT("/Game/UnrealPianofall/Blocks/Key")
+		TEXT("/Game/UnrealPianofall/Blocks/Apple") };
+	uint8 arg_blocktype;
+	uint8 blocktype = 0;
+	if (FParse::Value(FCommandLine::Get(), TEXT("block"), arg_blocktype)) {
+		if (arg_blocktype >= 0 && arg_blocktype <= 2) {
+			blocktype = arg_blocktype;
+		}
+	}
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> FoundMesh(blocktypes[blocktype]);
 
+	const TCHAR *materialtypes[] = {
+		TEXT("/Game/UnrealPianofall/Materials/M_Advanced_Block"),
+		TEXT("/Game/UnrealPianofall/Materials/M_Basic_Block"),
+		TEXT("/Game/StarterContent/Materials/M_AssetPlatform.M_AssetPlatform"),
+		TEXT("/Game/StarterContent/Materials/M_Basic_Floor.M_Basic_Floor"),
+		TEXT("/Game/StarterContent/Materials/M_Basic_Wall.M_Basic_Wall"),
+		TEXT("/Game/StarterContent/Materials/M_Brick_Clay_Beveled.M_Brick_Clay_Beveled"),
+		TEXT("/Game/StarterContent/Materials/M_Brick_Clay_New.M_Brick_Clay_New"),
+		TEXT("/Game/StarterContent/Materials/M_Brick_Clay_Old.M_Brick_Clay_Old"),
+		TEXT("/Game/StarterContent/Materials/M_Brick_Cut_Stone.M_Brick_Cut_Stone"),
+		TEXT("/Game/StarterContent/Materials/M_Brick_Hewn_Stone.M_Brick_Hewn_Stone"),
+		TEXT("/Game/StarterContent/Materials/M_Ceramic_Tile_Checker.M_Ceramic_Tile_Checker"),
+		TEXT("/Game/StarterContent/Materials/M_CobbleStone_Pebble.M_CobbleStone_Pebble"),
+		TEXT("/Game/StarterContent/Materials/M_CobbleStone_Rough.M_CobbleStone_Rough"),
+		TEXT("/Game/StarterContent/Materials/M_CobbleStone_Smooth.M_CobbleStone_Smooth"),
+		TEXT("/Game/StarterContent/Materials/M_Concrete_Grime.M_Concrete_Grime"),
+		TEXT("/Game/StarterContent/Materials/M_Concrete_Panels.M_Concrete_Panels"),
+		TEXT("/Game/StarterContent/Materials/M_Concrete_Poured.M_Concrete_Poured"),
+		TEXT("/Game/StarterContent/Materials/M_Concrete_Tiles.M_Concrete_Tiles"),
+		TEXT("/Game/StarterContent/Materials/M_Glass.M_Glass"),
+		TEXT("/Game/StarterContent/Materials/M_Ground_Grass.M_Ground_Grass"),
+		TEXT("/Game/StarterContent/Materials/M_Ground_Gravel.M_Ground_Gravel"),
+		TEXT("/Game/StarterContent/Materials/M_Ground_Moss.M_Ground_Moss"),
+		TEXT("/Game/StarterContent/Materials/M_Metal_Brushed_Nickel.M_Metal_Brushed_Nickel"),
+		TEXT("/Game/StarterContent/Materials/M_Metal_Burnished_Steel.M_Metal_Burnished_Steel"),
+		TEXT("/Game/StarterContent/Materials/M_Metal_Chrome.M_Metal_Chrome"),
+		TEXT("/Game/StarterContent/Materials/M_Metal_Copper.M_Metal_Copper"),
+		TEXT("/Game/StarterContent/Materials/M_Metal_Gold.M_Metal_Gold"),
+		TEXT("/Game/StarterContent/Materials/M_Metal_Rust.M_Metal_Rust"),
+		TEXT("/Game/StarterContent/Materials/M_Metal_Steel.M_Metal_Steel"),
+		TEXT("/Game/StarterContent/Materials/M_Rock_Basalt.M_Rock_Basalt"),
+		TEXT("/Game/StarterContent/Materials/M_Rock_Marble_Polished.M_Rock_Marble_Polished"),
+		TEXT("/Game/StarterContent/Materials/M_Rock_Sandstone.M_Rock_Sandstone"),
+		TEXT("/Game/StarterContent/Materials/M_Rock_Slate.M_Rock_Slate"),
+		TEXT("/Game/StarterContent/Materials/M_Tech_Checker_Dot.M_Tech_Checker_Dot"),
+		TEXT("/Game/StarterContent/Materials/M_Tech_Hex_Tile.M_Tech_Hex_Tile"),
+		TEXT("/Game/StarterContent/Materials/M_Tech_Hex_Tile_Pulse.M_Tech_Hex_Tile_Pulse"),
+		TEXT("/Game/StarterContent/Materials/M_Tech_Panel.M_Tech_Panel"),
+		TEXT("/Game/StarterContent/Materials/M_Water_Lake.M_Water_Lake"),
+		TEXT("/Game/StarterContent/Materials/M_Water_Ocean.M_Water_Ocean"),
+		TEXT("/Game/StarterContent/Materials/M_Wood_Floor_Walnut_Polished.M_Wood_Floor_Walnut_Polished"),
+		TEXT("/Game/StarterContent/Materials/M_Wood_Floor_Walnut_Worn.M_Wood_Floor_Walnut_Worn"),
+		TEXT("/Game/StarterContent/Materials/M_Wood_Oak.M_Wood_Oak"),
+		TEXT("/Game/StarterContent/Materials/M_Wood_Pine.M_Wood_Pine"),
+		TEXT("/Game/StarterContent/Materials/M_Wood_Walnut.M_Wood_Walnut") };
+	uint8 arg_materialtype;
+	uint8 materialtype = 0;
+	if (FParse::Value(FCommandLine::Get(), TEXT("material"), arg_materialtype)) {
+		if (arg_materialtype >= 0 && arg_materialtype <= 43) {
+			materialtype = arg_materialtype;
+		}
+	}
+	static ConstructorHelpers::FObjectFinder<UMaterial> FoundMaterial(materialtypes[materialtype]);
 	Block_Mesh = FoundMesh.Object;
 	Block_Material = FoundMaterial.Object;
 
@@ -91,41 +152,6 @@ ABlockGenerator::ABlockGenerator()
 void ABlockGenerator::BeginPlay()
 {
 	Super::BeginPlay();
-
-	//#if WITH_EDITOR == 0
-	//	FScreenResolutionArray Resolutions;
-	//	uint32 maxres_pixel = 0;
-	//	FIntPoint maxres;
-	//	if (RHIGetAvailableResolutions(Resolutions, false))
-	//	{
-	//		for (const FScreenResolutionRHI& EachResolution : Resolutions)
-	//		{
-	//			if (maxres_pixel < EachResolution.Width * EachResolution.Height) {
-	//				maxres.X = EachResolution.Width;
-	//				maxres.Y = EachResolution.Height;
-	//			}
-	//		}
-	//	}
-	//	else
-	//	{
-	//		UE_LOG(LogTemp, Error, TEXT("Screen Resolutions could not be obtained"));
-	//	}
-
-	//	//FDisplayMetrics display_res = FDisplayMetrics();
-	//	//UGameViewportClient *vpcl = GEngine->GameViewport;
-	//	//FSlateRect Rect = vpcl->GetWindow()->GetFullScreenInfo();
-	//	//FVector2D ResolutionOpt = Rect.GetSize();
-	//	//FIntPoint native_res = FIntPoint(ResolutionOpt.X, ResolutionOpt.Y);
-	//	UE_LOG(LogTemp, Log, TEXT("Resolution: %u x %u"), maxres.X, maxres.Y);
-	//	//GEngine->GameUserSettings->SetScreenResolution(maxres);
-	//	UGameUserSettings* GameSettings = GEngine->GetGameUserSettings();
-	//	GameSettings->SetScreenResolution(maxres);
-	//	GameSettings->SetAntiAliasingQuality(16);
-	//	GameSettings->SetFullscreenMode(EWindowMode::Windowed);
-	//	GameSettings->SetVSyncEnabled(0);
-	//	GameSettings->ApplySettings(false);
-	//#endif
-
 		
 	//File compatible with http://www.fourmilab.ch/webtools/midicsv/
 	//It's very usefull to test my MIDI pharser
@@ -151,7 +177,7 @@ void ABlockGenerator::BeginPlay()
 		bool arg_midi_out_enabled;
 		bool arg_midi_out_off_enabled;
 	#endif
-	float arg_gravity = -980.0f;
+	
 	float arg_seconds_wait_for_load;
 	bool arg_help = (FParse::Param(FCommandLine::Get(), TEXT("-help")))
 					| (FParse::Param(FCommandLine::Get(), TEXT("help")));
@@ -193,7 +219,15 @@ void ABlockGenerator::BeginPlay()
 			"--PPQ => Overwrites the MIDI speed (pulses/quarter)\n"
 			"--limit => The max amount of cubes in the scene\n"
 			"--reduction => Max amount of cubes per frame per note\n"
+			"--block => 0=Cube (default), 1=Piano key, 2=Apple\n"
+			"--block_x => Spawn X-position (default: 90600.0)\n"
+			"--block_y => Spawn y-position (default: 645000.0)\n"
+			"--block_z => Spawn Z-position (default: -110000.0f)\n"
+			"--blockscale => Block size multiplier (default: 1.0)"
+			"--material => 0=default, 1=basic, 2-43=starter [A-Z]\n"
 			"--gravity => Sets the worls gravity (dafault: -980.0)\n"
+			"--spawndist_x => Spawn X-offset multip. (default: 100)\n"
+			"--spawndist_y => Spawn Y-offset multip. (default: 100)\n"
 			"--width => Width res. (use together with --height)\n"
 			"--height => Height res. (use together with --width)\n"
 			"--mode => 0=Fullscreen, 1=WFull, 2=Wind. 3=NumWind.\n"
@@ -201,9 +235,11 @@ void ABlockGenerator::BeginPlay()
 			"--off => Enable sending MIDI off events to MIDI out\n"
 			"--capture => Saves a screenshot of every frame\n"
 			"--speed => Camara speed multiplicator (default: 1)\n"
-			"--repeat => Repeat pre-defined camera movement\n"
+			"--no-repeat => Don't repeat pre-defined camera movement\n"
 			"--free => Disable camera and let you control the view\n"
+			"--tp => Teleports the player to the blocks if --free\n"
 			"--fix => Locks the camera after capture starts\n"
+			"--no-loading-movie => Disable the loading Movie\n"
 			"--fps => Limit the fps/speed to an specified framerate\n"
 			"--vsync => Turn ON VSYNC (limits midi speed like --fps)\n"
 			"--low =>  Default instead of the ultra graphic settings\n"
@@ -214,6 +250,7 @@ void ABlockGenerator::BeginPlay()
 			"--help => Displays this help dialog box on launch\n"
 			"By default captured screenshots will be saved under:\n"
 			+ FPaths::ScreenShotDir() + "\n"
+			"UnrealPianofall Version: " + UNREALPIANOFALL_VERSION + "\n"
 			"For more helpful information read the ReadMe on GitHub!\n"
 			), &cmd_help_title);
 	}
@@ -299,11 +336,44 @@ void ABlockGenerator::BeginPlay()
 		}
 	#endif
 
+
+
+	float arg_block_x;
+	if (FParse::Value(FCommandLine::Get(), TEXT("block_x"), arg_block_x)) {
+		block_x = arg_block_x;
+	}
+
+	float arg_block_y;
+	if (FParse::Value(FCommandLine::Get(), TEXT("block_y"), arg_block_y)) {
+		block_y = arg_block_y;
+	}
+
+	float arg_block_z;
+	if (FParse::Value(FCommandLine::Get(), TEXT("block_z"), arg_block_z)) {
+		block_z = arg_block_z;
+	}
+
+	float arg_blockscale;
+	if (FParse::Value(FCommandLine::Get(), TEXT("blockscale"), arg_blockscale)) {
+		blockscale = FVector(arg_blockscale);
+	}
+
+	float arg_gravity = -980.0f;
 	if (FParse::Value(FCommandLine::Get(), TEXT("gravity"), arg_gravity)) {
 		AWorldSettings* WorldSet = GetWorld()->GetWorldSettings();
 		WorldSet->GlobalGravityZ = arg_gravity;
 	}
 
+	float arg_spawndist_x;
+	if (FParse::Value(FCommandLine::Get(), TEXT("spawndist_x"), arg_spawndist_x)) {
+		spawndist_x = arg_spawndist_x;
+	}
+
+	float arg_spawndist_y;
+	if (FParse::Value(FCommandLine::Get(), TEXT("spawndist_y"), arg_spawndist_y)) {
+		spawndist_y = arg_spawndist_y;
+	}
+	
 	#if MIDI_OUT == 1
 	if (FParse::Bool(FCommandLine::Get(), TEXT("audio"), arg_midi_out_enabled)) {
 		midi_out_enabled = arg_midi_out_enabled;
@@ -915,9 +985,8 @@ void ABlockGenerator::Tick(float DeltaTime)
 				}
 				#else
 				for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-					//location = FVector((float)(90600.0f - (spawnnr - 1)*50.0f + spawncount * 100.0f), (float)(645000.0f - notenr * 100.0f), -110000.0f);
-					//FVector(-74520.0, 277950.0, -121770.0)
-					location = FVector((float)(-74520.0f - (spawnnr - 1)*50.0f + spawncount * 100.0f), (float)(277950.0f - notenr * 100.0f), -105000.0f);
+					location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y - notenr * spawndist_y), block_x); //Cubes
+					//location = FVector((float)(-74520.0f - (spawnnr - 1)*50.0f + spawncount * 100.0f), (float)(277950.0f - notenr * 100.0f), -105000.0f); //House Explosion Scene
 					SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
 					blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
 				}

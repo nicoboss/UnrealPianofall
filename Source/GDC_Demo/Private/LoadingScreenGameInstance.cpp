@@ -8,6 +8,11 @@ void ULoadingScreenGameInstance::Init()
 {
 	UGameInstance::Init();
 
+	if (FParse::Param(FCommandLine::Get(), TEXT("-no-loading-movie"))
+		|| FParse::Param(FCommandLine::Get(), TEXT("no-loading-movie"))) {
+		return;
+	}
+
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &ULoadingScreenGameInstance::BeginLoadingScreen);
 	FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &ULoadingScreenGameInstance::EndLoadingScreen);
 }
@@ -20,7 +25,7 @@ void ULoadingScreenGameInstance::BeginLoadingScreen(const FString& MapName)
 		LoadingScreen.bAutoCompleteWhenLoadingCompletes = true;
 		LoadingScreen.bMoviesAreSkippable = false;
 		//LoadingScreen.MinimumLoadingScreenDisplayTime = 10;
-		LoadingScreen.MoviePaths.Add("CoC_Hack_720");
+		LoadingScreen.MoviePaths.Add("UnrealPianofallLoading720");
 		//LoadingScreen.WidgetLoadingScreen = FLoadingScreenAttributes::NewTestLoadingScreenWidget();
 		GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
 		GetMoviePlayer()->PlayMovie();

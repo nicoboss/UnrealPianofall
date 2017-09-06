@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Engine/DestructibleMesh.h"
 #include "Block.generated.h"
 
 UCLASS()
@@ -29,4 +30,5 @@ public:
 	UMaterialInstanceDynamic* DynMaterial;
 	USceneComponent* BlockRoot;
 	UStaticMeshComponent* MeshComp;
+	//UDestructibleComponent* MeshComp_DM;
 };

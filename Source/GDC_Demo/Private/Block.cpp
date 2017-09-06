@@ -7,7 +7,6 @@
 #include "Components/BoxComponent.h"
 
 
-
 // Sets default values
 ABlock::ABlock()
 {
@@ -31,26 +30,22 @@ void ABlock::BeginPlay()
 
 	DynMaterial = UMaterialInstanceDynamic::Create(AOwner->Block_Material, NULL);
 	DynMaterial->SetVectorParameterValue(FName("Color"), AOwner->rainbow[NoteNr]);
-	//DynMaterial->SetVectorParameterValue(FName("Color"), FLinearColor(1.0f, 0.8f, 0.8f));
-	//if (FMath::RandBool() == true) {
-	//	DynMaterial->SetVectorParameterValue(FName("Color"), FLinearColor(100.0f, 0.0f, 0.0f));
-	//}
-	//else {
-	//	DynMaterial->SetVectorParameterValue(FName("Color"), FLinearColor(100.0f, 100.0f, 0.0f));
-	//}
 
+	MeshComp->SetWorldScale3D(AOwner->blockscale);
 	MeshComp->SetMobility(EComponentMobility::Movable);
 	MeshComp->SetSimulatePhysics(true);
 	MeshComp->SetStaticMesh(AOwner->Block_Mesh);
 	MeshComp->SetMaterial(0, DynMaterial);
-
 }
 
 // Called every frame
+// Is by default disabled in ABlock::ABlock()
+// The BlockGebnerator handels despawning using a FIFO-List
+// which is much more efficient instead calling each block every frame.
+// Expect a huge performance impact if you ever need to enable this.
 void ABlock::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 

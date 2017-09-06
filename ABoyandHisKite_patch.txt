@@ -24,24 +24,23 @@ Only in UnrealPianofall/Source/GDC_Demo/Private: BlockGenerator.cpp
 Only in UnrealPianofall/Source/GDC_Demo/Private: CameraManager.cpp
 diff -re ABoyandHisKite/Source/GDC_Demo/Private/FaunaSpawnerComponent.cpp UnrealPianofall/Source/GDC_Demo/Private/FaunaSpawnerComponent.cpp
 21a
-	State = EFaunaSpawnerState::Populated;
-	return 0;
+	//Uncomment this to disable animal spawning
+	//State = EFaunaSpawnerState::Populated;
+	//return 0;
 
 .
 diff -re ABoyandHisKite/Source/GDC_Demo/Private/GDC_DemoCharacter.cpp UnrealPianofall/Source/GDC_Demo/Private/GDC_DemoCharacter.cpp
-78,81c
-	//PlayerInputComponent->BindAxis("Turn", this, &AGDC_DemoCharacter::Turn);
-	//PlayerInputComponent->BindAxis("TurnRate", this, &AGDC_DemoCharacter::TurnAtRate);
-	//PlayerInputComponent->BindAxis("LookUp", this, &AGDC_DemoCharacter::LookUp);
-	//PlayerInputComponent->BindAxis("LookUpRate", this, &AGDC_DemoCharacter::LookUpAtRate);
+81a
+	*/
+.
+77a
+	/*
 .
 diff -re ABoyandHisKite/Source/GDC_Demo/Private/GDC_DemoGameMode.cpp UnrealPianofall/Source/GDC_Demo/Private/GDC_DemoGameMode.cpp
 44a
 
+	//Disables then HUD
 	BeginKiteCine();
-.
-31a
-
 .
 29c
 	AttractModeIdleTime = 0.f;
@@ -98,77 +97,13 @@ diff -re ABoyandHisKite/Config/DefaultEditor.ini UnrealPianofall/Config/DefaultE
 
 .
 diff -re ABoyandHisKite/Config/DefaultEngine.ini UnrealPianofall/Config/DefaultEngine.ini
-234,235c
-bSubstepping=True
-bSubsteppingAsync=True
-.
 200c
 GameName=UnrealPianofall
-
-[/Script/Engine.AutomationTestSettings]
-DefaultScreenshotResolution=(X=3840,Y=2160)
-
-[/Script/WindowsTargetPlatform.WindowsTargetSettings]
-Compiler=Default
--TargetedRHIs=PCD3D_SM5
--TargetedRHIs=PCD3D_SM4
--TargetedRHIs=PCD3D_SM5
-+TargetedRHIs=PCD3D_SM4
-+TargetedRHIs=PCD3D_SM5
-+TargetedRHIs=SF_VULKAN_SM5
-MinimumOSVersion=MSOS_Vista
-AudioDevice=
-AudioSampleRate=48000
-AudioCallbackBufferFrameSize=1024
-AudioNumBuffersToEnqueue=1
-AudioMaxChannels=0
-AudioNumSourceWorkers=4
-.
-179c
-GameInstanceClass=/Script/KiteDemo.LoadingScreenGameInstance
 .
 173c
 EditorStartupMap=/Game/Maps/GoldenPath/GDC_Landscape_01.GDC_Landscape_01
 .
-48a
-r.SkinCache.SceneMemoryLimitInMB=128.000000
-r.ReflectionCaptureResolution=256
-.
-36c
-r.DefaultFeature.MotionBlur=False
-.
-12a
-ApplicationScale=1.000000
-.
 diff -re ABoyandHisKite/Config/DefaultGame.ini UnrealPianofall/Config/DefaultGame.ini
-8a
-[/Script/UnrealEd.ProjectPackagingSettings]
-BuildConfiguration=PPBC_Shipping
-FullRebuild=True
-ForDistribution=False
-.
-6,7c
+6c
 ProjectID=6EDECC78457B6BA9BEDF1E9B72E9BC55
-ProjectName=UnrealPianofall
-ProjectDisplayedTitle=NSLOCTEXT("[/Script/EngineSettings]", "4CC27133471D42821DD411B9B3DF1EC1", "UnrealPianofall")
-ProjectDebugTitleInfo=NSLOCTEXT("[/Script/EngineSettings]", "3A8EF3C34736D562DCD560BE80BA4D1F", "UnrealPianofall")
-CompanyDistinguishedName=Nico Bosshard
-Description=UnrealPianofall
-CompanyName=NB Game Development
-Homepage="https://github.com/nicoboss/UnrealPianofall"
-SupportContact="https://github.com/nicoboss/UnrealPianofall/issues"
-.
-diff -re ABoyandHisKite/Config/DefaultGameUserSettings.ini UnrealPianofall/Config/DefaultGameUserSettings.ini
-2,5c
-bUseVSync=False
-ResolutionSizeX=3840
-ResolutionSizeY=2160
-LastUserConfirmedResolutionSizeX=3840
-LastUserConfirmedResolutionSizeY=2160
-WindowPosX=-1
-WindowPosY=-1
-bUseDesktopResolutionForFullscreen=False
-FullscreenMode=3
-LastConfirmedFullscreenMode=3
-Version=5
 .
