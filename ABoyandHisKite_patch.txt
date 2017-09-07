@@ -89,7 +89,6 @@ Only in UnrealPianofall/Source/: Midi
 Only in UnrealPianofall/Source/: MidiAsset
 Only in UnrealPianofall/Source/: MidiInterface
 Only in UnrealPianofall/Source/: ProceduralAudio
-Only in UnrealPianofall/Source/: UnrealPianofall
 diff -re ABoyandHisKite/Config/DefaultEditor.ini UnrealPianofall/Config/DefaultEditor.ini
 14c
 +Map=/Game/Maps/GoldenPath/GDC_Landscape_01.umap
@@ -106,4 +105,50 @@ EditorStartupMap=/Game/Maps/GoldenPath/GDC_Landscape_01.GDC_Landscape_01
 diff -re ABoyandHisKite/Config/DefaultGame.ini UnrealPianofall/Config/DefaultGame.ini
 6c
 ProjectID=6EDECC78457B6BA9BEDF1E9B72E9BC55
+
+[/Script/UnrealEd.ProjectPackagingSettings]
+BuildConfiguration=PPBC_Shipping
+StagingDirectory=(Path="")
+FullRebuild=True
+ForDistribution=False
+IncludeDebugFiles=False
+BlueprintNativizationMethod=Disabled
+bWarnIfPackagedWithoutNativizationFlag=True
+UsePakFile=True
+bGenerateChunks=False
+bGenerateNoChunks=False
+bChunkHardReferencesOnly=False
+bBuildHttpChunkInstallData=False
+HttpChunkInstallDataDirectory=(Path="")
+HttpChunkInstallDataVersion=
+IncludePrerequisites=True
+IncludeAppLocalPrerequisites=False
+bShareMaterialShaderCode=False
+bSharedMaterialNativeLibraries=False
+ApplocalPrerequisitesDirectory=(Path="")
+IncludeCrashReporter=False
+InternationalizationPreset=English
+-CulturesToStage=en
++CulturesToStage=en
+DefaultCulture=en
+bCookAll=False
+bCookMapsOnly=False
+bCompressed=False
+bEncryptIniFiles=False
+bEncryptPakIndex=False
+bSkipEditorContent=False
+-DirectoriesToAlwaysCook=(Path="")
+-DirectoriesToAlwaysCook=(Path="UnrealPianofall/Blocks")
+-DirectoriesToAlwaysCook=(Path="StarterContent/Materials")
++DirectoriesToAlwaysCook=(Path="Movies")
++DirectoriesToAlwaysCook=(Path="UnrealPianofall/Blocks")
++DirectoriesToAlwaysCook=(Path="StarterContent/Materials")
+bNativizeBlueprintAssets=False
+bNativizeOnlySelectedBlueprints=False
+
+[/Script/MoviePlayer.MoviePlayerSettings]
+bWaitForMoviesToComplete=False
+bMoviesAreSkippable=False
+-StartupMovies=
++StartupMovies=UnrealPianofallLoading720
 .

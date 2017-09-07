@@ -16,7 +16,7 @@
 #include <fstream>
 #include "Block.h"
 
-#define UNREALPIANOFALL_VERSION "v1.0.1 (06.09.2017)"
+#define UNREALPIANOFALL_VERSION "v1.0.3 (07.09.2017)"
 #if WITH_EDITOR == 1
 #define MIDI_PATH "A:/Music/WreckingBall_1Mio.mid"
 #define LIMIT_VALUE 6000
@@ -56,7 +56,7 @@ ABlockGenerator::ABlockGenerator()
 
 	const TCHAR *blocktypes[] = {
 		TEXT("/Engine/EditorMeshes/EditorCube.EditorCube"),
-		TEXT("/Game/UnrealPianofall/Blocks/Key")
+		TEXT("/Game/UnrealPianofall/Blocks/Key"),
 		TEXT("/Game/UnrealPianofall/Blocks/Apple") };
 	uint8 arg_blocktype;
 	uint8 blocktype = 0;
@@ -219,6 +219,7 @@ void ABlockGenerator::BeginPlay()
 			"--PPQ => Overwrites the MIDI speed (pulses/quarter)\n"
 			"--limit => The max amount of cubes in the scene\n"
 			"--reduction => Max amount of cubes per frame per note\n"
+			"--startframe => Skips the beginning of a MIDI file\n"
 			"--block => 0=Cube (default), 1=Piano key, 2=Apple\n"
 			"--block_x => Spawn X-position (default: 90600.0)\n"
 			"--block_y => Spawn y-position (default: 645000.0)\n"
@@ -239,7 +240,6 @@ void ABlockGenerator::BeginPlay()
 			"--free => Disable camera and let you control the view\n"
 			"--tp => Teleports the player to the blocks if --free\n"
 			"--fix => Locks the camera after capture starts\n"
-			"--no-loading-movie => Disable the loading Movie\n"
 			"--fps => Limit the fps/speed to an specified framerate\n"
 			"--vsync => Turn ON VSYNC (limits midi speed like --fps)\n"
 			"--low =>  Default instead of the ultra graphic settings\n"
@@ -336,7 +336,10 @@ void ABlockGenerator::BeginPlay()
 		}
 	#endif
 
-
+	uint32 arg_startframe;
+	if (FParse::Value(FCommandLine::Get(), TEXT("startframe"), arg_startframe)) {
+		startframe = arg_startframe;
+	}
 
 	float arg_block_x;
 	if (FParse::Value(FCommandLine::Get(), TEXT("block_x"), arg_block_x)) {
@@ -929,7 +932,7 @@ void ABlockGenerator::Tick(float DeltaTime)
 	if (wait_for_load == true) {
 		if (FrameNr == frames_wait_for_load) {
 			wait_for_load = false;
-			FrameNr = 7495;
+			FrameNr = startframe;
 			return;
 		}
 		++FrameNr;
@@ -985,7 +988,7 @@ void ABlockGenerator::Tick(float DeltaTime)
 				}
 				#else
 				for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-					location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y - notenr * spawndist_y), block_x); //Cubes
+					location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y - notenr * spawndist_y), block_z); //Cubes
 					//location = FVector((float)(-74520.0f - (spawnnr - 1)*50.0f + spawncount * 100.0f), (float)(277950.0f - notenr * 100.0f), -105000.0f); //House Explosion Scene
 					SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
 					blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));

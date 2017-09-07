@@ -23,6 +23,7 @@ public:
 	FString screenshot_path_savedir = "";
 	uint32 blocklimit = 6000;
 	uint16 spawnreduction = 4;
+	uint16 startframe = 0;
 	float block_x = 90600.0f;
 	float block_y = 645000.0;
 	float block_z = -110000.0f;

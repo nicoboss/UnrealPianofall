@@ -76,8 +76,8 @@ void ACameraManager::Tick(float DeltaTime)
 	UWorld* world = GetWorld();
 	APlayerController* currentPlayerController = world->GetFirstPlayerController();
 
-	//Exit the Camera when the Player had pressed Tab in the last frame
-	if (currentPlayerController->WasInputKeyJustPressed(EKeys::Tab)) {
+	//Exit the Camera if the player had pressed End in the last frame
+	if (currentPlayerController->WasInputKeyJustPressed(EKeys::End)) {
 		this->Destroy();
 	}
 

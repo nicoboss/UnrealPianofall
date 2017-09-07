@@ -7,7 +7,7 @@
 void ULoadingScreenGameInstance::Init()
 {
 	UGameInstance::Init();
-
+	return;
 	if (FParse::Param(FCommandLine::Get(), TEXT("-no-loading-movie"))
 		|| FParse::Param(FCommandLine::Get(), TEXT("no-loading-movie"))) {
 		return;
@@ -19,17 +19,17 @@ void ULoadingScreenGameInstance::Init()
 
 void ULoadingScreenGameInstance::BeginLoadingScreen(const FString& MapName)
 {
-	if (!IsRunningDedicatedServer())
-	{
-		FLoadingScreenAttributes LoadingScreen;
-		LoadingScreen.bAutoCompleteWhenLoadingCompletes = true;
-		LoadingScreen.bMoviesAreSkippable = false;
-		//LoadingScreen.MinimumLoadingScreenDisplayTime = 10;
-		LoadingScreen.MoviePaths.Add("UnrealPianofallLoading720");
-		//LoadingScreen.WidgetLoadingScreen = FLoadingScreenAttributes::NewTestLoadingScreenWidget();
-		GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
-		GetMoviePlayer()->PlayMovie();
-	}
+	//if (!IsRunningDedicatedServer())
+	//{
+	//	FLoadingScreenAttributes LoadingScreen;
+	//	LoadingScreen.bAutoCompleteWhenLoadingCompletes = true;
+	//	LoadingScreen.bMoviesAreSkippable = false;
+	//	//LoadingScreen.MinimumLoadingScreenDisplayTime = 10;
+	//	LoadingScreen.MoviePaths.Add("UnrealPianofallLoading720"); //Must always be in Content/Movies 
+	//	//LoadingScreen.WidgetLoadingScreen = FLoadingScreenAttributes::NewTestLoadingScreenWidget();
+	//	GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
+	//	GetMoviePlayer()->PlayMovie();
+	//}
 }
 
 void ULoadingScreenGameInstance::EndLoadingScreen()
