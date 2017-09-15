@@ -11,7 +11,7 @@
 #include "BlockGenerator.generated.h"
 
 UCLASS()
-class KITEDEMO_API ABlockGenerator : public AActor
+class UNREALPIANOFALLLIGHT_API ABlockGenerator : public AActor
 {
 	GENERATED_BODY()
 
@@ -23,10 +23,15 @@ public:
 	FString screenshot_path_savedir = "";
 	uint32 blocklimit = 6000;
 	uint16 spawnreduction = 4;
-	uint16 startframe = 0;
-	float block_x = 90600.0f;
-	float block_y = 645000.0;
-	float block_z = -110000.0f;
+	bool highres = false;
+	float capture_resolution = 1.0f;
+	FVector2D ViewportSize;
+	uint32 screenshot_x;
+	uint32 screenshot_y;
+	uint32 startframe = 0;
+	float block_x = 0.0f;
+	float block_y = 0.0;
+	float block_z = 20000.0f;
 	FVector blockscale = FVector(1.0f);
 	float spawndist_x = 100.0f;
 	float spawndist_y = 100.0f;
@@ -36,12 +41,13 @@ public:
 	bool wait_for_load = true;
 	uint64 PPQ_overwrite = 0;
 	//Note: Default value sould be equal for the CameraManager
-	uint16 frames_wait_for_load = 420; //0;
+	uint32 frames_wait_for_load = 60; //0;
 	std::vector<std::array<uint32, 128>> spawnpos;
 	std::vector<std::array<uint32, 128>> stoppos;
 	std::queue<AActor*> blocks;
 	FLinearColor rainbow[128];
-	uint32 FrameNr = 0;
+	//Signed so that it can be compared with (spawnpos.size() - 2) which can be below zero
+	int64 FrameNr = 0;
 	UStaticMesh* Block_Mesh;
 	//UDestructibleMesh* Block_DM;
 	UMaterial* Block_Material;

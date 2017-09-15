@@ -8,7 +8,7 @@
 #include "Block.generated.h"
 
 UCLASS()
-class KITEDEMO_API ABlock : public AActor
+class UNREALPIANOFALLLIGHT_API ABlock : public AActor
 {
 	GENERATED_BODY()
 

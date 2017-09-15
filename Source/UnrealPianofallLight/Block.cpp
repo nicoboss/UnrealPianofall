@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "GDC_Demo.h"
 #include "Block.h"
 #include "BlockGenerator.h"
 #include "Engine.h"

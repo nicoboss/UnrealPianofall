@@ -7,7 +7,7 @@
 #include "CameraManager.generated.h"
 
 UCLASS()
-class KITEDEMO_API ACameraManager : public AActor
+class UNREALPIANOFALLLIGHT_API ACameraManager : public AActor
 {
 	GENERATED_BODY()
 	
@@ -19,7 +19,7 @@ public:
 	float camerapos = 0;
 	//Note: Default value sould be equal for the BlockGenerator
 	uint32 frames_wait_for_camera_fix = 0;
-	float camerapos_first_scene = 540.0f; //120.0f;
+	float camerapos_first_scene = 180.0f; //120.0f;
 	bool camera_fix = false;
 
 	//Starting here with 1 because the increasement is at the end
@@ -29,8 +29,9 @@ public:
 	FRotator camera_fix_rotator;
 	float camera_speed = 1.0f;
 	bool camera_no_repeat = false;
-	FVector centerpos = FVector(90600.0f, 645000.0f - 6400.0f, -110000.0f);
-	FVector centerposdown = FVector(90600.0f, 645000.0f - 6400.0f, -114000.0f);
+	FVector centerpos = FVector(0.0f, 0.0f, 20000.0f);
+	FVector centerposmid = FVector(0.0f, 0.0f, 10000.0f);
+	FVector centerposdown = FVector(0.0f, 0.0f, 2000.0f);
 	FVector playerstartpos = FVector(102225.0f, 647403.0f, -113628.0f);
 	FVector playerlastpos = FVector(102225.0f, 647403.0f, -113628.0f);
 

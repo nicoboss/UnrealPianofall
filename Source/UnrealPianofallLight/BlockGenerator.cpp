@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "GDC_Demo.h"
 #include "BlockGenerator.h"
 #include "Engine/World.h"
 #include <EngineGlobals.h>
@@ -16,14 +15,15 @@
 #include <fstream>
 #include "Block.h"
 
-#define UNREALPIANOFALL_VERSION "v1.0.3 (07.09.2017)"
+//#define MIDI_PATH "A:/Music/05ClassExample60bpm.mid"
+#define UNREALPIANOFALL_VERSION "v1.0.4 (15.09.2017)"
 #if WITH_EDITOR == 1
 #define MIDI_PATH "A:/Music/WreckingBall_1Mio.mid"
 #define LIMIT_VALUE 6000
 #define REDUCTION_VALUE 4
 #define MIDI_OUT 0
 #else
-#define MIDI_OUT 0
+#define MIDI_OUT 1
 #endif
 #define LOG_PATH "A:/Music/midi_data.csv"
 
@@ -56,66 +56,23 @@ ABlockGenerator::ABlockGenerator()
 
 	const TCHAR *blocktypes[] = {
 		TEXT("/Engine/EditorMeshes/EditorCube.EditorCube"),
-		TEXT("/Game/UnrealPianofall/Blocks/Key"),
-		TEXT("/Game/UnrealPianofall/Blocks/Apple") };
+		TEXT("/Game/UnrealPianofallLight/Blocks/Key") };
 	uint8 arg_blocktype;
-	uint8 blocktype = 0;
+	uint8 blocktype = 1;
 	if (FParse::Value(FCommandLine::Get(), TEXT("block"), arg_blocktype)) {
-		if (arg_blocktype >= 0 && arg_blocktype <= 2) {
+		if (arg_blocktype >= 0 && arg_blocktype <= 1) {
 			blocktype = arg_blocktype;
 		}
 	}
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> FoundMesh(blocktypes[blocktype]);
 
 	const TCHAR *materialtypes[] = {
-		TEXT("/Game/UnrealPianofall/Materials/M_Advanced_Block"),
-		TEXT("/Game/UnrealPianofall/Materials/M_Basic_Block"),
-		TEXT("/Game/StarterContent/Materials/M_AssetPlatform.M_AssetPlatform"),
-		TEXT("/Game/StarterContent/Materials/M_Basic_Floor.M_Basic_Floor"),
-		TEXT("/Game/StarterContent/Materials/M_Basic_Wall.M_Basic_Wall"),
-		TEXT("/Game/StarterContent/Materials/M_Brick_Clay_Beveled.M_Brick_Clay_Beveled"),
-		TEXT("/Game/StarterContent/Materials/M_Brick_Clay_New.M_Brick_Clay_New"),
-		TEXT("/Game/StarterContent/Materials/M_Brick_Clay_Old.M_Brick_Clay_Old"),
-		TEXT("/Game/StarterContent/Materials/M_Brick_Cut_Stone.M_Brick_Cut_Stone"),
-		TEXT("/Game/StarterContent/Materials/M_Brick_Hewn_Stone.M_Brick_Hewn_Stone"),
-		TEXT("/Game/StarterContent/Materials/M_Ceramic_Tile_Checker.M_Ceramic_Tile_Checker"),
-		TEXT("/Game/StarterContent/Materials/M_CobbleStone_Pebble.M_CobbleStone_Pebble"),
-		TEXT("/Game/StarterContent/Materials/M_CobbleStone_Rough.M_CobbleStone_Rough"),
-		TEXT("/Game/StarterContent/Materials/M_CobbleStone_Smooth.M_CobbleStone_Smooth"),
-		TEXT("/Game/StarterContent/Materials/M_Concrete_Grime.M_Concrete_Grime"),
-		TEXT("/Game/StarterContent/Materials/M_Concrete_Panels.M_Concrete_Panels"),
-		TEXT("/Game/StarterContent/Materials/M_Concrete_Poured.M_Concrete_Poured"),
-		TEXT("/Game/StarterContent/Materials/M_Concrete_Tiles.M_Concrete_Tiles"),
-		TEXT("/Game/StarterContent/Materials/M_Glass.M_Glass"),
-		TEXT("/Game/StarterContent/Materials/M_Ground_Grass.M_Ground_Grass"),
-		TEXT("/Game/StarterContent/Materials/M_Ground_Gravel.M_Ground_Gravel"),
-		TEXT("/Game/StarterContent/Materials/M_Ground_Moss.M_Ground_Moss"),
-		TEXT("/Game/StarterContent/Materials/M_Metal_Brushed_Nickel.M_Metal_Brushed_Nickel"),
-		TEXT("/Game/StarterContent/Materials/M_Metal_Burnished_Steel.M_Metal_Burnished_Steel"),
-		TEXT("/Game/StarterContent/Materials/M_Metal_Chrome.M_Metal_Chrome"),
-		TEXT("/Game/StarterContent/Materials/M_Metal_Copper.M_Metal_Copper"),
-		TEXT("/Game/StarterContent/Materials/M_Metal_Gold.M_Metal_Gold"),
-		TEXT("/Game/StarterContent/Materials/M_Metal_Rust.M_Metal_Rust"),
-		TEXT("/Game/StarterContent/Materials/M_Metal_Steel.M_Metal_Steel"),
-		TEXT("/Game/StarterContent/Materials/M_Rock_Basalt.M_Rock_Basalt"),
-		TEXT("/Game/StarterContent/Materials/M_Rock_Marble_Polished.M_Rock_Marble_Polished"),
-		TEXT("/Game/StarterContent/Materials/M_Rock_Sandstone.M_Rock_Sandstone"),
-		TEXT("/Game/StarterContent/Materials/M_Rock_Slate.M_Rock_Slate"),
-		TEXT("/Game/StarterContent/Materials/M_Tech_Checker_Dot.M_Tech_Checker_Dot"),
-		TEXT("/Game/StarterContent/Materials/M_Tech_Hex_Tile.M_Tech_Hex_Tile"),
-		TEXT("/Game/StarterContent/Materials/M_Tech_Hex_Tile_Pulse.M_Tech_Hex_Tile_Pulse"),
-		TEXT("/Game/StarterContent/Materials/M_Tech_Panel.M_Tech_Panel"),
-		TEXT("/Game/StarterContent/Materials/M_Water_Lake.M_Water_Lake"),
-		TEXT("/Game/StarterContent/Materials/M_Water_Ocean.M_Water_Ocean"),
-		TEXT("/Game/StarterContent/Materials/M_Wood_Floor_Walnut_Polished.M_Wood_Floor_Walnut_Polished"),
-		TEXT("/Game/StarterContent/Materials/M_Wood_Floor_Walnut_Worn.M_Wood_Floor_Walnut_Worn"),
-		TEXT("/Game/StarterContent/Materials/M_Wood_Oak.M_Wood_Oak"),
-		TEXT("/Game/StarterContent/Materials/M_Wood_Pine.M_Wood_Pine"),
-		TEXT("/Game/StarterContent/Materials/M_Wood_Walnut.M_Wood_Walnut") };
+		TEXT("/Game/UnrealPianofallLight/Materials/M_Advanced_Block"),
+		TEXT("/Game/UnrealPianofallLight/Materials/M_Basic_Block") };
 	uint8 arg_materialtype;
 	uint8 materialtype = 0;
 	if (FParse::Value(FCommandLine::Get(), TEXT("material"), arg_materialtype)) {
-		if (arg_materialtype >= 0 && arg_materialtype <= 43) {
+		if (arg_materialtype >= 0 && arg_materialtype <= 1) {
 			materialtype = arg_materialtype;
 		}
 	}
@@ -213,40 +170,44 @@ void ABlockGenerator::BeginPlay()
 		if (arg_midi_fileName.IsEmpty() || arg_help == true) {
 	#endif
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(
-			"Command line arguments:\n"
+			"Command line arguments (Light Version):\n"
 			"--midi=\"filepath\" => the MIDI file (.mid) to open\n"
-			"--path=\"dirpath\" => Screenshot save directory"
+			"--path=\"dirpath\" => Screenshot save directory\n"
+			"--res => Screenshot resol. multip. (default: 1.0)\n"
+			"if not equals 1.0 --path will be ignored and the\n"
+			"slower high resolution screenshot will be used\n"
+			"even for multiplier values below 1.0!\n"
 			"--PPQ => Overwrites the MIDI speed (pulses/quarter)\n"
 			"--limit => The max amount of cubes in the scene\n"
 			"--reduction => Max amount of cubes per frame per note\n"
 			"--startframe => Skips the beginning of a MIDI file\n"
-			"--block => 0=Cube (default), 1=Piano key, 2=Apple\n"
-			"--block_x => Spawn X-position (default: 90600.0)\n"
-			"--block_y => Spawn y-position (default: 645000.0)\n"
-			"--block_z => Spawn Z-position (default: -110000.0f)\n"
-			"--blockscale => Block size multiplier (default: 1.0)"
-			"--material => 0=default, 1=basic, 2-43=starter [A-Z]\n"
-			"--gravity => Sets the worls gravity (dafault: -980.0)\n"
+			"--block => 0=Piano key (1x10x10) (default), 1=Cube\n"
+			"--block_x => Spawn X-position (default: 0.0)\n"
+			"--block_y => Spawn y-position (default: 0.0)\n"
+			"--block_z => Spawn Z-position (default: 5000.0f)\n"
+			"--blockscale => Block size multiplier (default: 1.0)\n"
+			"--material => 0=default, 1=basic (no reflections)\n"
+			"--gravity => Sets the worlds gravity (dafault: -980.0)\n"
 			"--spawndist_x => Spawn X-offset multip. (default: 100)\n"
 			"--spawndist_y => Spawn Y-offset multip. (default: 100)\n"
 			"--width => Width res. (use together with --height)\n"
 			"--height => Height res. (use together with --width)\n"
 			"--mode => 0=Fullscreen, 1=WFull, 2=Wind. 3=NumWind.\n"
-			"--audio => Enable MIDI out on the default MIDI channel\n"
-			"--off => Enable sending MIDI off events to MIDI out\n"
+			"--audio => Enables MIDI out on the default MIDI channel\n"
+			"--off => Enables sending MIDI off events to MIDI out\n"
 			"--capture => Saves a screenshot of every frame\n"
 			"--speed => Camara speed multiplicator (default: 1)\n"
 			"--no-repeat => Don't repeat pre-defined camera movement\n"
-			"--free => Disable camera and let you control the view\n"
+			"--free => Disables camera and let you control the view\n"
 			"--tp => Teleports the player to the blocks if --free\n"
 			"--fix => Locks the camera after capture starts\n"
-			"--fps => Limit the fps/speed to an specified framerate\n"
-			"--vsync => Turn ON VSYNC (limits midi speed like --fps)\n"
+			"--fps => Limits the fps/speed to an specified framerate\n"
+			"--vsync => Turns ON VSYNC (limits midi speed like --fps)\n"
 			"--low =>  Default instead of the ultra graphic settings\n"
-			"--wait => Seconds for world optimisation befor playing\n"
-			"default: 7 seconds for loading the whole scene\n"
+			"--wait => Seconds for world optimisation before playing\n"
+			"default: 1 seconds for loading the whole scene\n"
 			"also useful in combination with --free in order to\n"
-			"bring the camera in position befor capture start\n"
+			"brings the camera in position before capture start\n"
 			"--help => Displays this help dialog box on launch\n"
 			"By default captured screenshots will be saved under:\n"
 			+ FPaths::ScreenShotDir() + "\n"
@@ -317,7 +278,18 @@ void ABlockGenerator::BeginPlay()
 	}
 	
 	GameSettings->ApplySettings(false);
+	
+	uint64 arg_capture_resolution;
+	if (FParse::Value(FCommandLine::Get(), TEXT("res"), arg_capture_resolution)) {
+		capture_resolution = arg_capture_resolution;
+		if (capture_resolution != 1.0) {
+			highres = true;
+		}
 
+	}
+	ViewportSize = FVector2D(GEngine->GameViewport->Viewport->GetSizeXY());
+	screenshot_x = (uint32)(ViewportSize.X * capture_resolution);
+	screenshot_y = (uint32)(ViewportSize.Y * capture_resolution);
 
 	
 	#ifdef LIMIT_VALUE
@@ -939,7 +911,9 @@ void ABlockGenerator::Tick(float DeltaTime)
 		return;
 	}
 
-	if (FrameNr > spawnpos.size() - 2) {
+	//FrameNr must be a signed because (spawnpos.size() - 2) can be below zero
+	//If not stoped it pharses unallocated RAM space (cool random notes but could crash)
+	if (FrameNr > (int64)(spawnpos.size() - 2)) {
 		#if WITH_EDITOR == 1
 			GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green, "Done!");
 		#endif
@@ -974,7 +948,8 @@ void ABlockGenerator::Tick(float DeltaTime)
 				#if MIDI_OUT == 1
 				if (midi_out_enabled == true) {
 					for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-						location = FVector((float)(90600.0f + spawncount * 100.0f), (float)(645000 - notenr * 100.0f), -110000.0f);
+						//Don't forget to also applay any changes in the next 3 lines in the equal non #if MIDI_OUT == 1 code block below
+						location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z);
 						SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
 						blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
 
@@ -985,25 +960,27 @@ void ABlockGenerator::Tick(float DeltaTime)
 						message[2] = 0x64;
 						midiout->sendMessage(&message);
 					}
-				}
-				#else
-				for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-					location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y - notenr * spawndist_y), block_z); //Cubes
-					//location = FVector((float)(-74520.0f - (spawnnr - 1)*50.0f + spawncount * 100.0f), (float)(277950.0f - notenr * 100.0f), -105000.0f); //House Explosion Scene
-					SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
-					blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
+				} else {
+				#endif
+					for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
+						//Don't forget to also applay any changes in the next 3 lines in the equal #if MIDI_OUT == 1 code block above
+						location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z);
+						SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
+						blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
+					}
+				#if MIDI_OUT == 1
 				}
 				#endif
 			}
 			#if MIDI_OUT == 1 
 			if (midi_out_off_enabled == true && stopnr > 0) {
 				for (stopcount = 0; stopcount < stopnr; ++stopcount) {
-					// Note Off: 0x90, 64, 40
+					// Note Off: 0x90, notenr, 0
 					//UE_LOG(LogTemp, Log, TEXT("OFF: %u"), notenr);
-					//message[0] = 0x80;
-					//message[1] = notenr;
-					//message[2] = 0;
-					//midiout->sendMessage(&message);
+					message[0] = 0x80;
+					message[1] = notenr;
+					message[2] = 0;
+					midiout->sendMessage(&message);
 				}
 			}
 			#endif
@@ -1019,22 +996,29 @@ void ABlockGenerator::Tick(float DeltaTime)
 			GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green,
 				  "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime)
 				+ "\nBlocks: " + FString::FromInt(blocks.size())
-				+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size())
-				+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60) 
-				+ "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
+				+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size() - 2)
+				+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60)
+				+ "\nPos: " + GEngine->GetFirstLocalPlayerController(world)->PlayerCameraManager->GetCameraLocation().ToString());
 		#endif
 	}
 
 	if (capture_enabled == true) {
-		//GetHighResScreenshotConfig().ResolutionMultiplier = capture_resolution; //Sets the res multiplier
-		//GetWorld()->GetGameViewport()->Viewport->TakeHighResScreenShot(); //Sets the flag in the viewport to take the high-res shot.
-		//GIsHighResScreenshot = true;
-		//GScreenshotResolutionX = 7680;
-		//GScreenshotResolutionY = 4320;
-		//FPaths::ScreenShotDir()
-		std::string frame_nr_str = std::to_string(FrameNr);
-		std::string screenshot_filename = std::string(8 - frame_nr_str.length(), '0') + frame_nr_str + ".png";
-		FScreenshotRequest::RequestScreenshot(screenshot_path_savedir + FString(screenshot_filename.c_str()), false, false);
+		if (highres == false) {
+			std::string frame_nr_str = std::to_string(FrameNr);
+			std::string screenshot_filename = std::string(8 - frame_nr_str.length(), '0') + frame_nr_str + ".png";
+			FScreenshotRequest::RequestScreenshot(screenshot_path_savedir + FString(screenshot_filename.c_str()), false, false);
+		}
+		else {
+			GIsHighResScreenshot = true;
+			GScreenshotResolutionX = screenshot_x;
+			GScreenshotResolutionY = screenshot_y;
+			FScreenshotRequest::RequestScreenshot(FString(), false, true);
+			//FPaths::ScreenShotDir()
+			//GetHighResScreenshotConfig().ResolutionMultiplier = capture_resolution; //Sets the res multiplier
+			//GetWorld()->GetGameViewport()->Viewport->TakeHighResScreenShot(); //Sets the flag in the viewport to take the high-res shot.
+		}
+
+
 	}
 
 	++FrameNr;
