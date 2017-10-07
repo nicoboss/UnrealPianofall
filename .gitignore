@@ -2,6 +2,7 @@
 Content/*
 !Content/UnrealPianofall/*
 UnrealPianofall.png
+UnrealPianofallLight.png
 
 # Ignore all ABoyandHisKite sources except the ones I wrote
 Source/KiteDemo.Target.cs

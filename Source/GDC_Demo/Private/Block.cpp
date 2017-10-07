@@ -23,18 +23,30 @@ void ABlock::BeginPlay()
 
 	//Only defined AFTER the ABlock::ABlock() constructor!
 	ABlockGenerator* AOwner = (ABlockGenerator*)this->GetOwner();
-	name = this->GetName();
-	name.FindChar('N', npos);
-	NoteNr = FCString::Atoi(*name.RightChop(npos + 1));
-	//UE_LOG(LogTemp, Log, TEXT("%d"), NoteNr);
+	//name = this->GetName();
+	//name.FindChar('N', npos);
+	//NoteNr = FCString::Atoi(*name.RightChop(npos + 1));
+	//UE_LOG(LogTemp, Log, TEXT("%d"), §);
 
+	FVector loc = this->GetActorLocation();
+	float newloc_z = floor(loc.Z);
+	NoteNr = (int32)((loc.Z - newloc_z)*1000.0);
+	//UE_LOG(LogTemp, Log, TEXT("loc.Z %f => %u   newloc_z: %f"), loc.Z, NoteNr, newloc_z);
+	loc.Z = newloc_z;
+	this->SetActorLocation(loc);
+
+	//#if WITH_EDITOR == 1
 	DynMaterial = UMaterialInstanceDynamic::Create(AOwner->Block_Material, NULL);
 	DynMaterial->SetVectorParameterValue(FName("Color"), AOwner->rainbow[NoteNr]);
+	//#else
+	//	DynMaterial = AOwner->DynMaterial[NoteNr];
+	//#endif
 
 	MeshComp->SetWorldScale3D(AOwner->blockscale);
 	MeshComp->SetMobility(EComponentMobility::Movable);
 	MeshComp->SetSimulatePhysics(true);
 	MeshComp->SetStaticMesh(AOwner->Block_Mesh);
+	//MeshComp->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 	MeshComp->SetMaterial(0, DynMaterial);
 }
 
@@ -47,5 +59,3 @@ void ABlock::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
-
-

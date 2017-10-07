@@ -16,11 +16,14 @@
 #include <fstream>
 #include "Block.h"
 
-#define UNREALPIANOFALL_VERSION "v1.0.3 (07.09.2017)"
+#define UNREALPIANOFALL_VERSION "v1.0.5 (08.10.2017)"
+#define MIDI_PATH "A:/Music/BA_Rare_ASDF_Mode_rev_1.1.mid"
+#define LIMIT_VALUE 100000
+#define REDUCTION_VALUE 16
 #if WITH_EDITOR == 1
-#define MIDI_PATH "A:/Music/WreckingBall_1Mio.mid"
-#define LIMIT_VALUE 6000
-#define REDUCTION_VALUE 4
+#define MIDI_PATH "A:/Music/BA_Rare_ASDF_Mode_rev_1.1.mid"
+#define LIMIT_VALUE 100000
+#define REDUCTION_VALUE 16
 #define MIDI_OUT 0
 #else
 #define MIDI_OUT 0
@@ -65,6 +68,8 @@ ABlockGenerator::ABlockGenerator()
 			blocktype = arg_blocktype;
 		}
 	}
+	blocktype = 2;
+
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> FoundMesh(blocktypes[blocktype]);
 
 	const TCHAR *materialtypes[] = {
@@ -205,6 +210,7 @@ void ABlockGenerator::BeginPlay()
 	if (FParse::Value(FCommandLine::Get(), TEXT("path"), arg_screenshot_path_savedir)) {
 		screenshot_path_savedir = arg_screenshot_path_savedir.Replace(TEXT("="), TEXT("")).Replace(TEXT("\""), TEXT("")); // replace quotes
 	}
+	screenshot_path_savedir = "A:/Out/";
 
 
 	#ifdef MIDI_PATH
@@ -324,9 +330,13 @@ void ABlockGenerator::BeginPlay()
 		blocklimit = LIMIT_VALUE;
 	#else
 		if (FParse::Value(FCommandLine::Get(), TEXT("limit"), arg_blocklimit)) {
-			blocklimit = arg_blocklimit;
+			const uint32 blocklimit = arg_blocklimit;
+		} else {
+			const uint32 blocklimit = 6000;
 		}
 	#endif
+	blocks = new AActor*[blocklimit];
+	//std::array<AActor*, blocklimit> blocks;
 
 	#ifdef REDUCTION_VALUE
 		spawnreduction = REDUCTION_VALUE;
@@ -340,6 +350,8 @@ void ABlockGenerator::BeginPlay()
 	if (FParse::Value(FCommandLine::Get(), TEXT("startframe"), arg_startframe)) {
 		startframe = arg_startframe;
 	}
+	startframe = 12269;
+	//00013036
 
 	float arg_block_x;
 	if (FParse::Value(FCommandLine::Get(), TEXT("block_x"), arg_block_x)) {
@@ -360,6 +372,7 @@ void ABlockGenerator::BeginPlay()
 	if (FParse::Value(FCommandLine::Get(), TEXT("blockscale"), arg_blockscale)) {
 		blockscale = FVector(arg_blockscale);
 	}
+	//blockscale = FVector(2.0);
 
 	float arg_gravity = -980.0f;
 	if (FParse::Value(FCommandLine::Get(), TEXT("gravity"), arg_gravity)) {
@@ -388,6 +401,7 @@ void ABlockGenerator::BeginPlay()
 
 	capture_enabled = (FParse::Param(FCommandLine::Get(), TEXT("-capture")))
 						| (FParse::Param(FCommandLine::Get(), TEXT("capture")));
+	capture_enabled = true;
 
 	if (FParse::Value(FCommandLine::Get(), TEXT("wait"), arg_seconds_wait_for_load)) {
 		frames_wait_for_load = (uint16)(arg_seconds_wait_for_load/60.0f);
@@ -974,10 +988,19 @@ void ABlockGenerator::Tick(float DeltaTime)
 				#if MIDI_OUT == 1
 				if (midi_out_enabled == true) {
 					for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-						location = FVector((float)(90600.0f + spawncount * 100.0f), (float)(645000 - notenr * 100.0f), -110000.0f);
-						SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
-						blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
+						//Don't forget to also applay any changes in the next lines in the equal non #if MIDI_OUT == 1 code block below
+						if (blocks_overwrite_flag == true) {
+							blocks[blocks_index]->Destroy();
+						}
 
+						location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z + (notenr / 1000.0f));
+						blocks[blocks_index] = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
+						blocks[blocks_index]->SetOwner(this);
+
+						if (++blocks_index >= blocklimit) {
+							blocks_index = 0;
+							blocks_overwrite_flag = true;
+						}
 						// Note On: 0x90, notenr, 0x64
 						//UE_LOG(LogTemp, Log, TEXT("ON: %u"), notenr);
 						message[0] = 0x90;
@@ -986,12 +1009,24 @@ void ABlockGenerator::Tick(float DeltaTime)
 						midiout->sendMessage(&message);
 					}
 				}
-				#else
-				for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
-					location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y - notenr * spawndist_y), block_z); //Cubes
-					//location = FVector((float)(-74520.0f - (spawnnr - 1)*50.0f + spawncount * 100.0f), (float)(277950.0f - notenr * 100.0f), -105000.0f); //House Explosion Scene
-					SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
-					blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
+				else {
+				#endif
+					for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
+						//Don't forget to also applay any changes in the next lines in the equal #if MIDI_OUT == 1 code block above
+						if (blocks_overwrite_flag == true) {
+							blocks[blocks_index]->Destroy();
+						}
+
+						location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z + (notenr / 1000.0f));
+						blocks[blocks_index] = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
+						blocks[blocks_index]->SetOwner(this);
+
+						if (++blocks_index >= blocklimit) {
+							blocks_index = 0;
+							blocks_overwrite_flag = true;
+						}
+					}
+				#if MIDI_OUT == 1
 				}
 				#endif
 			}
@@ -1009,20 +1044,17 @@ void ABlockGenerator::Tick(float DeltaTime)
 			#endif
 		}
 
-		while (blocks.size() > blocklimit) {
-			blocks.front()->Destroy();
-			blocks.pop();
-		}
+		//Keep this or it will Crash after like 4 million spawned/destroyed blocks!
+		world->ForceGarbageCollection(true);
 
-
-		#if WITH_EDITOR == 1
-			GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green,
-				  "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime)
-				+ "\nBlocks: " + FString::FromInt(blocks.size())
-				+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size())
-				+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60) 
-				+ "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
-		#endif
+		//#if WITH_EDITOR == 1
+		//	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green,
+		//		  "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime)
+		//		+ "\nIndex: " + FString::FromInt(blocks_index)
+		//		+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size())
+		//		+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60) 
+		//		+ "\nPos: " + GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation().ToString());
+		//#endif
 	}
 
 	if (capture_enabled == true) {

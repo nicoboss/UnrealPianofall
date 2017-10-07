@@ -89,6 +89,7 @@ Only in UnrealPianofall/Source/: Midi
 Only in UnrealPianofall/Source/: MidiAsset
 Only in UnrealPianofall/Source/: MidiInterface
 Only in UnrealPianofall/Source/: ProceduralAudio
+Only in UnrealPianofall/Source/: UnrealPianofall
 diff -re ABoyandHisKite/Config/DefaultEditor.ini UnrealPianofall/Config/DefaultEditor.ini
 14c
 +Map=/Game/Maps/GoldenPath/GDC_Landscape_01.umap
@@ -96,11 +97,46 @@ diff -re ABoyandHisKite/Config/DefaultEditor.ini UnrealPianofall/Config/DefaultE
 
 .
 diff -re ABoyandHisKite/Config/DefaultEngine.ini UnrealPianofall/Config/DefaultEngine.ini
+234,235c
+bSubstepping=True
+bSubsteppingAsync=True
+.
+231c
+bDisableCCD=True
+.
+228c
+bSuppressFaceRemapTable=True
+.
+225c
+bSimulateSkeletalMeshOnDedicatedServer=False
+.
+209,211c
+bEnableAsyncScene=True
+bEnableShapeSharing=True
+bEnablePCM=False
+.
 200c
 GameName=UnrealPianofall
 .
 173c
 EditorStartupMap=/Game/Maps/GoldenPath/GDC_Landscape_01.GDC_Landscape_01
+.
+48a
+r.ReflectionCaptureResolution=256
+.
+40,41c
+r.EarlyZPassMovable=True
+r.DBuffer=True
+.
+36,37c
+r.DefaultFeature.MotionBlur=False
+r.DefaultFeature.LensFlare=False
+.
+28c
+r.GenerateMeshDistanceFields=False
+.
+19c
+r.AllowOcclusionQueries=False
 .
 diff -re ABoyandHisKite/Config/DefaultGame.ini UnrealPianofall/Config/DefaultGame.ini
 6c
@@ -151,4 +187,9 @@ bWaitForMoviesToComplete=False
 bMoviesAreSkippable=False
 -StartupMovies=
 +StartupMovies=UnrealPianofallLoading720
+.
+diff -re ABoyandHisKite/Config/DefaultGameUserSettings.ini UnrealPianofall/Config/DefaultGameUserSettings.ini
+2,3c
+ResolutionSizeX=3840
+ResolutionSizeY=2160
 .
