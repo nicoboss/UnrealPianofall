@@ -46,6 +46,7 @@ public:
 	std::vector<std::array<uint32, 128>> stoppos;
 	std::queue<AActor*> blocks;
 	FLinearColor rainbow[128];
+	UMaterialInstanceDynamic* DynMaterial[128];
 	//Signed so that it can be compared with (spawnpos.size() - 2) which can be below zero
 	int64 FrameNr = 0;
 	UStaticMesh* Block_Mesh;

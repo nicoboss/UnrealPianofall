@@ -15,12 +15,15 @@
 #include <fstream>
 #include "Block.h"
 
-//#define MIDI_PATH "A:/Music/05ClassExample60bpm.mid"
+//Async & Substepping also in order to not let PhyX crash while working with too many tasks
+#define MIDI_PATH "A:/Music/BA_Rare_ASDF_Mode_rev_1.1.mid"
+#define LIMIT_VALUE 1
+#define REDUCTION_VALUE 1600
 #define UNREALPIANOFALL_VERSION "v1.0.4 (15.09.2017)"
 #if WITH_EDITOR == 1
-#define MIDI_PATH "A:/Music/WreckingBall_1Mio.mid"
-#define LIMIT_VALUE 6000
-#define REDUCTION_VALUE 4
+#define MIDI_PATH "A:/Music/BA_Rare_ASDF_Mode_rev_1.1.mid"
+#define LIMIT_VALUE 1
+#define REDUCTION_VALUE 1600
 #define MIDI_OUT 0
 #else
 #define MIDI_OUT 1
@@ -101,6 +104,12 @@ ABlockGenerator::ABlockGenerator()
 		rainbow[i] = { 255.0f, 0.0f, 1.0f - ((i - 106)*0.04545454545f) };
 	}
 
+	for (int i = 0; i < 128; ++i) {
+		DynMaterial[i] = UMaterialInstanceDynamic::Create(Block_Material, NULL);
+		DynMaterial[i]->SetVectorParameterValue(FName("Color"), rainbow[i]);
+	}
+
+
 }
 
 
@@ -162,7 +171,7 @@ void ABlockGenerator::BeginPlay()
 	if (FParse::Value(FCommandLine::Get(), TEXT("path"), arg_screenshot_path_savedir)) {
 		screenshot_path_savedir = arg_screenshot_path_savedir.Replace(TEXT("="), TEXT("")).Replace(TEXT("\""), TEXT("")); // replace quotes
 	}
-
+	screenshot_path_savedir = "A:/Out/";
 
 	#ifdef MIDI_PATH
 		if (arg_help == true) {
@@ -338,16 +347,20 @@ void ABlockGenerator::BeginPlay()
 		AWorldSettings* WorldSet = GetWorld()->GetWorldSettings();
 		WorldSet->GlobalGravityZ = arg_gravity;
 	}
+	AWorldSettings* WorldSet = GetWorld()->GetWorldSettings();
+	WorldSet->GlobalGravityZ = -980;
 
 	float arg_spawndist_x;
 	if (FParse::Value(FCommandLine::Get(), TEXT("spawndist_x"), arg_spawndist_x)) {
 		spawndist_x = arg_spawndist_x;
 	}
+	spawndist_x = 0;
 
 	float arg_spawndist_y;
 	if (FParse::Value(FCommandLine::Get(), TEXT("spawndist_y"), arg_spawndist_y)) {
 		spawndist_y = arg_spawndist_y;
 	}
+	spawndist_y = 200;
 	
 	#if MIDI_OUT == 1
 	if (FParse::Bool(FCommandLine::Get(), TEXT("audio"), arg_midi_out_enabled)) {
@@ -360,6 +373,7 @@ void ABlockGenerator::BeginPlay()
 
 	capture_enabled = (FParse::Param(FCommandLine::Get(), TEXT("-capture")))
 						| (FParse::Param(FCommandLine::Get(), TEXT("capture")));
+	//capture_enabled = true;
 
 	if (FParse::Value(FCommandLine::Get(), TEXT("wait"), arg_seconds_wait_for_load)) {
 		frames_wait_for_load = (uint16)(arg_seconds_wait_for_load/60.0f);
@@ -931,10 +945,13 @@ void ABlockGenerator::Tick(float DeltaTime)
 		#endif
 		FVector location;
 		FRotator rotate = FRotator(0.0f, 0.0f, 0.0f);
+		UWorld* world = GetWorld();
+
+		std::stringstream ss;
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		SpawnInfo.Owner = this;
-		UWorld* world = GetWorld();
+
 		for (notenr = 0; notenr < 128; ++notenr) {
 			spawnnr = spawnpos[FrameNr][notenr];
 			stopnr = stoppos[FrameNr][notenr];
@@ -949,8 +966,12 @@ void ABlockGenerator::Tick(float DeltaTime)
 				if (midi_out_enabled == true) {
 					for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
 						//Don't forget to also applay any changes in the next 3 lines in the equal non #if MIDI_OUT == 1 code block below
-						location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z);
-						SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
+						//location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z);
+						location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z + (notenr / 1000.0f));
+						//FActorSpawnParameters SpawnInfo;
+						//SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+						//SpawnInfo.Owner = this;
+						//SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
 						blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
 
 						// Note On: 0x90, notenr, 0x64
@@ -964,9 +985,16 @@ void ABlockGenerator::Tick(float DeltaTime)
 				#endif
 					for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
 						//Don't forget to also applay any changes in the next 3 lines in the equal #if MIDI_OUT == 1 code block above
-						location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z);
-						SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
+						//location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z);
+						location = FVector((float)(block_x - (spawnnr - 1)*50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z + (notenr/1000.0f));
+						//SpawnInfo.Name = *FString::Printf((TCHAR*)"F%uN%uC%u", FrameNr, notenr, spawncount);
+						//ss.clear();
+						//ss << "F" << FrameNr << "N" << notenr << "C" << spawncount;
+						//FName iii = ss.str().c_str();
+						//SpawnInfo.Name = iii;
+						//new FActorSpawnParameters{ (FName) *FString::Printf(TEXT("F%uN%uC%u")), new AActor*, new AActor*, new APawn*, new ULevel*, ESpawnActorCollisionHandlingMethod::AlwaysSpawn }
 						blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
+						blocks.front()->SetOwner(this);
 					}
 				#if MIDI_OUT == 1
 				}
@@ -986,20 +1014,25 @@ void ABlockGenerator::Tick(float DeltaTime)
 			#endif
 		}
 
-		while (blocks.size() > blocklimit) {
-			blocks.front()->Destroy();
-			blocks.pop();
+		if (blocks.size() > blocklimit) {
+			do {
+				blocks.front()->Destroy();
+				blocks.pop(); //Last Crashpint
+			} while (blocks.size() > blocklimit);
+			world->ForceGarbageCollection(true);
 		}
 
 
-		#if WITH_EDITOR == 1
-			GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green,
-				  "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime)
-				+ "\nBlocks: " + FString::FromInt(blocks.size())
-				+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size() - 2)
-				+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60)
-				+ "\nPos: " + GEngine->GetFirstLocalPlayerController(world)->PlayerCameraManager->GetCameraLocation().ToString());
-		#endif
+		//#if WITH_EDITOR == 1
+		//	GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Green,
+		//		  "FPS: " + FString::SanitizeFloat(1.0f / DeltaTime)
+		//		+ "\nBlocks: " + FString::FromInt(blocks.size())
+		//		+ "\nFrame: " + FString::FromInt(FrameNr) + "/" + FString::FromInt(spawnpos.size() - 2)
+		//		+ "\nLength: " + FString::FromInt(int(spawnpos.size()/3600.0f)) + ":" + FString::FromInt(int(spawnpos.size()/60.0f) % 60)
+		//		+ "\nPos: " + GEngine->GetFirstLocalPlayerController(world)->PlayerCameraManager->GetCameraLocation().ToString());
+		//#endif
+		UE_LOG(LogTemp, Log, TEXT("Frame: %u/%u"), FrameNr, spawnpos.size() - 2);
+		
 	}
 
 	if (capture_enabled == true) {
