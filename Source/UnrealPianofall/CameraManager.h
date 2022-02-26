@@ -16,7 +16,7 @@ public:
 	// Sets default values for this actor's properties
 	ACameraManager();
 
-	uint8 scenenr = 1;
+	uint8 scenenr = 0;
 	float camerapos = 0;
 	//Note: Default value sould be equal for the BlockGenerator
 	uint32 frames_wait_for_camera_fix = 0;

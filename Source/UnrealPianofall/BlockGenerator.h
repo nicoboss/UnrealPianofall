@@ -8,6 +8,7 @@
 #include <array>
 #include <queue>
 #include <fstream>
+#include "Block.h"
 #include "BlockGenerator.generated.h"
 
 UCLASS()
@@ -44,7 +45,7 @@ public:
 	uint32 frames_wait_for_load = 60; //0;
 	std::vector<std::array<uint32, 128>> spawnpos;
 	std::vector<std::array<uint32, 128>> stoppos;
-	std::queue<AActor*> blocks;
+	std::queue<ABlock*> blocks;
 	FLinearColor rainbow[128];
 	UMaterialInstanceDynamic* DynMaterial[128];
 	//Signed so that it can be compared with (spawnpos.size() - 2) which can be below zero

@@ -972,7 +972,17 @@ void ABlockGenerator::Tick(float DeltaTime)
 						//SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 						//SpawnInfo.Owner = this;
 						//SpawnInfo.Name = *FString::Printf(TEXT("F%uN%uC%u"), FrameNr, notenr, spawncount);
-						blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
+
+						if (blocks.size() >= blocklimit) {
+							ABlock* blockActor = blocks.front();
+							blockActor->SetActorLocationAndRotation(location, rotate, false, 0, ETeleportType::ResetPhysics);
+							blockActor->RefreshColor();
+							blocks.pop();
+							blocks.push(blockActor);
+						}
+						else {
+							blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
+						}
 
 						// Note On: 0x90, notenr, 0x64
 						//UE_LOG(LogTemp, Log, TEXT("ON: %u"), notenr);
@@ -993,8 +1003,16 @@ void ABlockGenerator::Tick(float DeltaTime)
 						//FName iii = ss.str().c_str();
 						//SpawnInfo.Name = iii;
 						//new FActorSpawnParameters{ (FName) *FString::Printf(TEXT("F%uN%uC%u")), new AActor*, new AActor*, new APawn*, new ULevel*, ESpawnActorCollisionHandlingMethod::AlwaysSpawn }
-						blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
-						blocks.front()->SetOwner(this);
+						if (blocks.size() >= blocklimit) {
+							ABlock* blockActor = blocks.front();
+							blockActor->SetActorLocationAndRotation(location, rotate, false, 0, ETeleportType::ResetPhysics);
+							blockActor->RefreshColor();
+							blocks.pop();
+							blocks.push(blockActor);
+						}
+						else {
+							blocks.push(world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo));
+						}
 					}
 				#if MIDI_OUT == 1
 				}
@@ -1012,14 +1030,6 @@ void ABlockGenerator::Tick(float DeltaTime)
 				}
 			}
 			#endif
-		}
-
-		if (blocks.size() > blocklimit) {
-			do {
-				blocks.front()->Destroy();
-				blocks.pop(); //Last Crashpint
-			} while (blocks.size() > blocklimit);
-			GEngine->ForceGarbageCollection(true);
 		}
 
 

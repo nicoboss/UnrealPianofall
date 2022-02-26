@@ -24,6 +24,8 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	virtual void RefreshColor();
+
 	FString name;
 	int32 npos;
 	int32 NoteNr;
