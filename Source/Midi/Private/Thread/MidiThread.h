@@ -1,7 +1,9 @@
-/// Copyright 2011 Alex Leffelman
-// Updated 2016 Scott Bishel
+// Credit -> Scott Bishel
 
 #pragma once
+
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h" 
 
 class FRunnable;
 class FRunnableThread;
@@ -16,6 +18,8 @@ class MIDI_API FMidiProcessorWorker : public FRunnable
 	/** The PC */
 	MidiProcessor* ThePC;
 
+	bool isGameTime;
+
 public:
 
 	//Done?
@@ -24,7 +28,7 @@ public:
 	//~~~ Thread Core Functions ~~~
 
 	//Constructor / Destructor
-	FMidiProcessorWorker(MidiProcessor* IN_PC);	
+	FMidiProcessorWorker(MidiProcessor* IN_PC, bool UseGameTime);
 	virtual ~FMidiProcessorWorker();
 
 	// Begin FRunnable interface.

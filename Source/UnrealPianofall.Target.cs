@@ -1,14 +1,14 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MIT Licensed, Nico Bosshard 2022
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 
-public class UnrealPianofallLightTarget : TargetRules
+public class UnrealPianofallTarget : TargetRules
 {
-	public UnrealPianofallLightTarget(TargetInfo Target) : base(Target)
+	public UnrealPianofallTarget( TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Game;
-
-		ExtraModuleNames.AddRange( new string[] { "UnrealPianofallLight" } );
+		DefaultBuildSettings = BuildSettingsVersion.V2;
+		ExtraModuleNames.AddRange( new string[] { "UnrealPianofall" } );
 	}
 }

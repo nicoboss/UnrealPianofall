@@ -1,7 +1,6 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "MidiProcessor.h"
 
 #include "../Event/Meta/Tempo.h"
@@ -9,7 +8,7 @@
 #include "../Event/MidiEvent.h"
 #include "../Util/MidiUtil.h"
 
-MidiProcessor::MidiProcessor() : PlaySpeed(1.0) {
+MidiProcessor::MidiProcessor() : PlayRate(1.0), milliFunction( NULL ){
 	mMidiFile = NULL;
 	mMetronome = NULL;
 
@@ -23,6 +22,8 @@ MidiProcessor::~MidiProcessor()
 	if (mMetronome)
 		delete mMetronome;
 	mMetronome = NULL;
+
+	milliFunction = NULL;
 }
 
 void MidiProcessor::load(MidiFile & file) {
@@ -39,44 +40,52 @@ void MidiProcessor::load(MidiFile & file) {
 	mMPQN = Tempo::DEFAULT_MPQN;
 	mPPQ = mMidiFile->getResolution();
 
-	mMetronome = new MetronomeTick(&sig, mPPQ);
+	//reset metronome
+	mMetronome = new MetronomeTick(&mSig, mPPQ);
 
-	mCurrEvents.Empty();
-	TArray<MidiTrack*>& tracks = mMidiFile->getTracks();
-	for (int i = 0; i < tracks.Num(); i++) {
-		mCurrEvents.Add(tracks[i]->getEvents().CreateIterator());
+	mCurrEvents.clear();
+	mCurrEventsEnd.clear();
+	vector<MidiTrack*>& tracks = mMidiFile->getTracks();
+	for (int i = 0; i < (int)tracks.size(); i++) {
+		mCurrEvents.push_back(tracks[i]->getEvents().begin());
+		mCurrEventsEnd.push_back(tracks[i]->getEvents().end());
 	}
 }
 
-void MidiProcessor::start() {
+void MidiProcessor::start(const double& deltaTime /*= clock()*/) {
 	if (mRunning) return;
 	
-	mLastMs = FPlatformTime::Cycles();
+	mLastMs = deltaTime;// clock();
 	mRunning = true;
 
 	mListener->onStart(mMsElapsed == 0);
 }
 
 void MidiProcessor::stop() {
-	mRunning = false;
+	if (!mRunning) return;
 
+	mRunning = false;
 	mListener->onStop(false);
 }
 
 void MidiProcessor::reset() {
 	mRunning = false;
 
-	// makes sure thread is stopped
-	mListener->onStop(false);
-
 	mTicksElapsed = 0;
 	mMsElapsed = 0;
 
-	if (mMetronome)
-		mMetronome->setTimeSignature(&sig);
+	//reset metronome
+	if (mMetronome) {
+		delete mMetronome;
+		mMetronome = NULL;
+		//mMetronome->setTimeSignature(&mSig);
+	}
+	mMetronome = new MetronomeTick(&mSig, mPPQ);
+		
 
-	for (int i = 0; i < mCurrEvents.Num(); i++) {
-		mCurrEvents[i].Reset();
+	vector<MidiTrack*>& tracks = mMidiFile->getTracks();
+	for (int i = 0; i < (int)mCurrEvents.size(); i++) {
+		mCurrEvents[i] = tracks[i]->getEvents().begin();
 	}
 }
 
@@ -107,21 +116,21 @@ void MidiProcessor::dispatch(MidiEvent * _event) {
 			dispatch(mMetronome);
 		}
 	}
-	mListener->onEvent(_event);
+	mListener->onEvent(_event, (long)mMsElapsed);
 }
-
-void MidiProcessor::update(double deltaTime = -1) {
+// Processes the MIDI file every tick
+void MidiProcessor::update(const double& deltaTime /*= clock()*/) {
 	if (!mRunning)
 		return;
 
 	double now = deltaTime;
 	double msElapsed = now - mLastMs;
-	if (deltaTime < 0) {
-		now = FPlatformTime::Cycles();
-		msElapsed = FPlatformTime::ToMilliseconds(now - mLastMs);
-	}
 
-	double ticksElapsed = (((msElapsed * 1000.0) * mPPQ) / mMPQN) * PlaySpeed;
+	// workaround to allow custom timer
+	if(milliFunction != NULL)
+		msElapsed = milliFunction((unsigned int)msElapsed);
+
+	double ticksElapsed = MidiUtil::msToTicks(msElapsed, mMPQN, mPPQ) * PlayRate;
 	if (ticksElapsed < 1) {
 		return;
 	}
@@ -140,27 +149,31 @@ void MidiProcessor::update(double deltaTime = -1) {
 }
 
 void MidiProcessor::process() {
+	int len = (int)mCurrEvents.size();
 
-	for (int i = 0; i < mCurrEvents.Num(); i++) {
-		while (mCurrEvents[i]) {
+	for (int i = 0; i < len; i++) {
+		//TODO re-expose track
+		_trackID = i;
+		while (mCurrEvents[i] != mCurrEventsEnd[i]) {
 			MidiEvent * _event = *mCurrEvents[i];
 			if (_event->getTick() <= mTicksElapsed) {
 				dispatch(_event);
-				mCurrEvents[i]++;
+				++mCurrEvents[i];
 			}
 			else
 				break;
 		}
 	}
 
-	for (int i = 0; i < mCurrEvents.Num(); i++) {
-		if (mCurrEvents[i])
+	for (int i = 0; i < len; i++) {
+		if (mCurrEvents[i] != mCurrEventsEnd[i])
 		{
 			return;
 		}
 	}
 
 	mRunning = false;
+	this->reset();
+	
 	mListener->onStop(true);
-
 }

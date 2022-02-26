@@ -1,7 +1,6 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "TextualMetaEvent.h"
 
 TextualMetaEvent::TextualMetaEvent(long tick, long delta, int type, string text)
@@ -10,8 +9,8 @@ TextualMetaEvent::TextualMetaEvent(long tick, long delta, int type, string text)
 	mText = text;
 }
 
-TextualMetaEvent::~TextualMetaEvent() {
-	
+TextualMetaEvent::~TextualMetaEvent()
+{ 
 }
 
 void TextualMetaEvent::setText(string t) {
@@ -23,29 +22,36 @@ string TextualMetaEvent::getText() {
 }
 
 int TextualMetaEvent::getEventSize() {
-	return 2 + mLength->getByteCount() + (int)mText.length();
+	return 2 + mLength->getByteCount() + mLength->getValue();
 }
 
-void TextualMetaEvent::writeToFile(FMemoryWriter & output) {
+void TextualMetaEvent::writeToFile(ostream & output) {
 	MetaEvent::writeToFile(output);
 
-	output.Serialize(mLength->getBytes(), mLength->getByteCount());
-	output.Serialize((char*)mText.c_str(), mText.length());
+	output.write(mLength->getBytes(), mLength->getByteCount());
+	output.write(mText.data(), mLength->getValue());
 }
 
-int TextualMetaEvent::CompareTo(MidiEvent *other) {
+int TextualMetaEvent::compareTo(MidiEvent *other) {
+	// Compare time
+	if (mTick != other->getTick()) {
+		return mTick < other->getTick() ? -1 : 1;
+	}
+	if (mDelta->getValue() != other->getDelta()) {
+		return mDelta->getValue() < other->getDelta() ? 1 : -1;
+	}
 
-	int value = MidiEvent::CompareTo(other);
-	if (value != 0)
-		return value;
+	// Check if event is a text type event
+	if (!(other->getType() >= TEXT_EVENT && other->getType() <= CUE_POINT)) {
+		return 1;
+	}
 
 	TextualMetaEvent * o = static_cast<TextualMetaEvent*>(other);
-
 	return mText.compare(o->mText);
 }
 
-string TextualMetaEvent::ToString() {
+string TextualMetaEvent::toString() {
 	std::stringstream ss;
-	ss << MetaEvent::ToString() << ": " << mText;
+	ss << MetaEvent::toString() << ": " << mText;
 	return ss.str();
 }

@@ -5,27 +5,29 @@
 
 #include "MidiTrack.h"
 
+#include <vector>
+
 /**
  * 
  */
-class MIDI_API MidiFile
+class MidiFile
 {
 	int mType;
 	int mTrackCount;
 	int mResolution;
 
-	TArray<MidiTrack*> mTracks;
+	std::vector<MidiTrack*> mTracks;
 
 public:
 	static const int HEADER_SIZE = 14;
-	static const char IDENTIFIER[];
+	static const char IDENTIFIER[]; // 'M', 'T', 'h', 'd'
 
 	static const int DEFAULT_RESOLUTION = 480;
 
 	MidiFile();
 	MidiFile(int resolution);
-	MidiFile(int resolution, const TArray<MidiTrack*>& tracks);
-	MidiFile(FBufferReader & input);
+	MidiFile(int resolution, const vector<MidiTrack*>& tracks);
+	MidiFile(istream & input);
 	~MidiFile();
 
 	void setType(int type);
@@ -38,14 +40,14 @@ public:
 
 	long getLengthInTicks();
 
-	TArray<MidiTrack*>& getTracks();
+	vector<MidiTrack*>& getTracks();
 
 	void addTrack(MidiTrack* T);
 	void addTrack(MidiTrack* T, int pos);
 
 	void removeTrack(int pos);
 
-	void writeToFile(FMemoryWriter & output);
+	void writeToFile(ostream & output);
 
 private:
 	void initFromBuffer(char buffer[]);

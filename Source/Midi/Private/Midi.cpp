@@ -1,5 +1,6 @@
-// Copyright -> Scott Bishel
+// Credit -> Scott Bishel
 
+#include "Midi.h"
 #include "MidiPrivatePCH.h"
 
 

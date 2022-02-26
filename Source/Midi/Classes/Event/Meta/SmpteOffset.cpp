@@ -1,8 +1,8 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "SmpteOffset.h"
+#include "GenericMetaEvent.h"
 
 SmpteOffset::SmpteOffset(long tick, long delta, int fps, int hour, int min, int sec, int fr, int subfr)
 	: MetaEvent(tick, delta, MetaEvent::SMPTE_OFFSET, new VariableLengthInt(5))
@@ -61,38 +61,50 @@ int SmpteOffset::getEventSize() {
 	return 8;
 }
 
-void SmpteOffset::writeToFile(FMemoryWriter & output) {
+void SmpteOffset::writeToFile(ostream & output) {
 	MetaEvent::writeToFile(output);
 
-	int size = getEventSize() - 3;
-	output.Serialize(&size, 1);
-	output.Serialize(&mHours, 1);
-	output.Serialize(&mMinutes, 1);
-	output.Serialize(&mSeconds, 1);
-	output.Serialize(&mFrames, 1);
-	output.Serialize(&mSubFrames, 1);
+	output.put((char)5); // size
+	output.put((char)mHours);
+	output.put((char)mMinutes);
+	output.put((char)mSeconds);
+	output.put((char)mFrames);
+	output.put((char)mSubFrames);
 }
 
-SmpteOffset * SmpteOffset::parseSmpteOffset(long tick, long delta, FBufferReader & input) {
+MetaEvent * SmpteOffset::parseSmpteOffset(long tick, long delta, MetaEventData& info) {
+	// Check if valid Event
+	if (info.length->getValue() != 5)
+	{
+		return new GenericMetaEvent(tick, delta, info);
+	}
 
-	input.Seek(input.Tell() + 1);			// Size = 5
-	
-	int rrHours = 0;
-	input.Serialize(&rrHours, 1);
-
+	int rrHours = info.data[0];
 	int rr = rrHours >> 5;
 	int fps = int(rr);
 	int hour = rrHours & 0x1F;
 
-	int min = 0, sec = 0, frm = 0, sub = 0;
-	input.Serialize(&min, 1);
-	input.Serialize(&sec, 1);
-	input.Serialize(&frm, 1);
-	input.Serialize(&sub, 1);
+	int min = info.data[1];
+	int sec = info.data[2];
+	int frm = info.data[3];
+	int sub = info.data[4];
 
 	return new SmpteOffset(tick, delta, fps, hour, min, sec, frm, sub);
 }
 
-int SmpteOffset::CompareTo(MidiEvent *other) {
-	return MidiEvent::CompareTo(other);
+int SmpteOffset::compareTo(MidiEvent *other) {
+	// Compare time
+	if (mTick != other->getTick()) {
+		return mTick < other->getTick() ? -1 : 1;
+	}
+	if (mDelta->getValue() != other->getDelta()) {
+		return mDelta->getValue() < other->getDelta() ? 1 : -1;
+	}
+
+	// Check if same event type
+	if (!(other->getType() == MetaEvent::SMPTE_OFFSET)) {
+		return 1;
+	}
+
+	return 0;
 }

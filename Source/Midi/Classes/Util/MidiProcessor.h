@@ -8,10 +8,13 @@
 #include "MetronomeTick.h"
 #include "MidiEventListener.h"
 
+// system processor clock
+#include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
+
 /**
 *	Loads and plays back a MIDI file
 */
-class MIDI_API MidiProcessor
+class MidiProcessor
 {
 	static const int PROCESS_RATE_MS = 8;
 
@@ -24,7 +27,7 @@ class MIDI_API MidiProcessor
 	int mPPQ;
 
 	MetronomeTick* mMetronome;
-	TimeSignature sig;
+	TimeSignature mSig;
 
 public:
 	MidiProcessor();
@@ -32,7 +35,7 @@ public:
 
 	void load(MidiFile & file);
 
-	void start();
+	void start(const double& deltaTime = clock());
 	void stop();
 	void reset();
 
@@ -41,87 +44,32 @@ public:
 
 	void setListener(MidiEventListener* listener);
 
-	// Sets the play back speed
-	double PlaySpeed;
-
-	// use real time clock or game time?
-	bool isGameTime = false;
-
-	void setBeginTime(double time) {
-		mLastMs = time;
+	// Sets the play back rate
+	double PlayRate;
+	// TODO temp expose to get current track
+	int _trackID;
+	
+	/* allows custom time parser (Unreal engine workaround)
+	 ex
+	// Funtion
+	float customMilliParser(const unsigned int elapsed) {
+		return elapsed / 1000;
 	}
+	// Inside a Function
+	mProcessor.milliFunction = customMilliParser;
+	*/
+	float (*milliFunction)(const unsigned int);
 
-	void update(double deltaTime);
+	void update(const double& deltaTime = clock());
 
 protected:
 	void dispatch(MidiEvent * _event);
 
 private:
 	void process();
-	TArray<TArray<MidiEvent*>::TIterator> mCurrEvents;
+	vector<vector<MidiEvent*>::iterator > mCurrEvents;
+	vector<vector<MidiEvent*>::iterator > mCurrEventsEnd;
 
 	double mLastMs;
 	MidiEventListener* mListener;
-
-	class MidiTrackEventQueue
-	{
-	private:
-		MidiTrack* mTrack;
-		TArray<MidiEvent*>::TIterator mIterator;
-		TArray<MidiEvent*> mEventsToDispatch;
-		MidiEvent* mNext;
-
-	public:
-		MidiTrackEventQueue(MidiTrack* track) : mIterator(track->getEvents().CreateIterator()), mNext(NULL)
-		{
-			mTrack = track;
-
-			if (mIterator)
-			{
-				mNext = *mIterator;
-			}
-		}
-
-		TArray<MidiEvent*>& getNextEventsUpToTick(double tick)
-		{
-			mEventsToDispatch.Empty();
-
-			while (mNext != NULL)
-			{
-
-				if (mNext->getTick() <= tick)
-				{
-					mEventsToDispatch.Add(mNext);
-
-					if (++mIterator)
-					{
-						mNext = *mIterator;
-					}
-					else
-					{
-						mNext = NULL;
-					}
-				}
-				else
-				{
-					break;
-				}
-			}
-
-			return mEventsToDispatch;
-		}
-
-		bool hasMoreEvents()
-		{
-			return mNext != NULL;
-		}
-
-		void Reset() {
-			mIterator.Reset();
-			if (mIterator)
-			{
-				mNext = *mIterator;
-			}
-		}
-	};
 };

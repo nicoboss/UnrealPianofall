@@ -1,18 +1,16 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MIT Licensed, Nico Bosshard 2022
 
 using UnrealBuildTool;
-using System.IO;
 
-public class UnrealPianofallLight : ModuleRules
+public class UnrealPianofall : ModuleRules
 {
-	public UnrealPianofallLight(ReadOnlyTargetRules Target) : base(Target)
+	public UnrealPianofall(ReadOnlyTargetRules Target) : base(Target)
 	{
-        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+	
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Midi", "MidiAsset", "MidiInterface", "ProceduralAudio" });
 
-        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Midi", "MidiAsset", "MidiInterface", "ProceduralAudio" });
-
-        PrivateDependencyModuleNames.AddRange(new string[] {  });
-
+		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

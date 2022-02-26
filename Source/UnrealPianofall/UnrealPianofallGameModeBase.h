@@ -1,20 +1,17 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MIT Licensed, Nico Bosshard 2022
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "UnrealPianofallLightGameModeBase.generated.h"
+#include "UnrealPianofallGameModeBase.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UNREALPIANOFALLLIGHT_API AUnrealPianofallLightGameModeBase : public AGameModeBase
+class UNREALPIANOFALL_API AUnrealPianofallGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
-	
-	
-	
 	
 };

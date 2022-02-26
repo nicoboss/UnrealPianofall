@@ -1,7 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-#include "UnrealPianofallLightGameModeBase.h"
+// MIT Licensed, Nico Bosshard 2022
 
 
-
+#include "UnrealPianofallGameModeBase.h"
 

@@ -1,7 +1,6 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "MidiEvent.h"
 
 #include "ChannelAftertouch.h"
@@ -16,6 +15,7 @@
 
 #include "Meta/MetaEvent.h"
 #include <sstream>
+#include <vector>
 
 MidiEvent::MidiEvent(long tick, long delta) : mType(-1), mDelta(NULL)  {
 	mTick = tick;
@@ -72,52 +72,67 @@ bool MidiEvent::requiresStatusByte(MidiEvent * prevEvent) {
 		return true;
 	}
 
+	// check if the events are the same
 	if (this->getType() == prevEvent->getType()) {
 		return false;
 	}
+
+	// A way to make sure if its a system exclusive event
+	if ( (this->getType() == 0xF0 || this->getType() == 0xF7) &&
+		 (prevEvent->getType() == 0xF0 || prevEvent->getType() == 0xF7) ) {
+		return false;
+	}
+
 	return true;
 }
 
-void MidiEvent::writeToFile(FMemoryWriter & output, bool writeType){
-	output.Serialize(mDelta->getBytes(), mDelta->getByteCount());
+void MidiEvent::writeToFile(ostream & output, bool writeType) {
+	writeType = false; // TODO ignore unreferenced formal parameter
+	output.write(mDelta->getBytes(), mDelta->getByteCount());
 }
 
+// static variables to track continuous events
 int MidiEvent::sId = -1;
 int MidiEvent::sType = -1;
 int MidiEvent::sChannel = -1;
 
-MidiEvent * MidiEvent::parseEvent(long tick, long delta, FBufferReader & input){
-
+MidiEvent * MidiEvent::parseEvent(long tick, long delta, istream & input) {
 	bool reset = false;
 	
-	int id = 0;
-	input.Serialize(&id, 1);
+	// ID event
+	int id = input.get();
 	if (!verifyIdentifier(id)) {
 		// move back one bytes
-		input.Seek(input.Tell() - 1);
+		input.unget();
 		reset = true;
 	}
 
+	// Channel Event
 	if (sType >= 0x8 && sType <= 0xE) {
 
 		return ChannelEvent::parseChannelEvent(tick, delta, sType, sChannel, input);
 	}
+	// Meta Event
 	else if (sId == 0xFF) {
 
 		return MetaEvent::parseMetaEvent(tick, delta, input);
 	}
+	// System Exclusive Event
 	else if (sId == 0xF0 || sId == 0xF7) {
-
 		VariableLengthInt size(input);
-		char * data = new char[size.getValue()];
-		input.Serialize(data, size.getValue());
+
+		string* data = new string(size.getValue(), ' ');
+		input.read(&(*data)[0], size.getValue());
+
 		return new SystemExclusiveEvent(sId, tick, delta, data);
 	}
+	// Unknown Event
 	else {
-		UE_LOG(LogTemp, Warning, TEXT("Unknown Status Type: %d"), sId);
+		cout << "Unknown Status Type: " << sId;
 
 		if (reset) {
-			input.Seek(input.Tell() + 1);
+			// ignore next byte
+			input.ignore();
 		}
 	}
 
@@ -125,7 +140,6 @@ MidiEvent * MidiEvent::parseEvent(long tick, long delta, FBufferReader & input){
 }
 
 bool MidiEvent::verifyIdentifier(int id) {
-
 	sId = id;
 
 	int type = id >> 4;
@@ -149,23 +163,8 @@ bool MidiEvent::verifyIdentifier(int id) {
 	return true;
 }
 
-int MidiEvent::CompareTo(MidiEvent *other)
-{
-	if (mTick != other->getTick()) {
-		return mTick < other->getTick() ? -1 : 1;
-	}
-	if (mDelta->getValue() != other->getDelta()) {
-		return mDelta->getValue() < other->getDelta() ? 1 : -1;
-	}
-
-	if (!(other->getType() == this->getType())) {
-		return 1;
-	}
-
-	return 0;
-}
-
-string getMidiClassName(int type) {
+// Just a way to return the name of the event
+string MidiEvent::getMidiClassName(int type) {
 
 	// ChannelEvent
 	switch (type) {
@@ -228,7 +227,7 @@ string getMidiClassName(int type) {
 	return "Unknown";
 }
 
-string MidiEvent::ToString()
+string MidiEvent::toString()
 {
 	std::stringstream ss;
 	ss << mTick << " (" << mDelta->getValue() << "): " << getMidiClassName(mType);

@@ -1,8 +1,8 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "KeySignature.h"
+#include "GenericMetaEvent.h"
 
 KeySignature::KeySignature(long tick, long delta, int key, int scale)
 	: MetaEvent(tick, delta, MetaEvent::KEY_SIGNATURE, new VariableLengthInt(2))
@@ -34,31 +34,40 @@ int KeySignature::getEventSize() {
 	return 5;
 }
 
-void KeySignature::writeToFile(FMemoryWriter & output) {
+void KeySignature::writeToFile(ostream & output) {
 	MetaEvent::writeToFile(output);
 
-	int size = getEventSize() - 3;
-	output.Serialize(&size, 1);
-	output.Serialize(&mKey, 1);
-	output.Serialize(&mScale, 1);
+	output.put((char)2); //size
+	output.put((char)mKey);
+	output.put((char)mScale);
 }
 
-KeySignature * KeySignature::parseKeySignature(long tick, long delta, FBufferReader & input) {
+MetaEvent * KeySignature::parseKeySignature(long tick, long delta, MetaEventData& info) {
+	// Check if valid Event
+	if (info.length->getValue() != 2)
+	{
+		return new GenericMetaEvent(tick, delta, info);
+	}
 
-	input.Seek(input.Tell() + 1);		// Size = 2;
-
-	int key = 0, scale = 0;
-	input.Serialize(&key, 1);
-	input.Serialize(&scale, 1);
+	int key = info.data[0];
+	int scale = info.data[1];
 
 	return new KeySignature(tick, delta, key, scale);
 }
 
-int KeySignature::CompareTo(MidiEvent *other) {
+int KeySignature::compareTo(MidiEvent *other) {
+	// Compare time
+	if (mTick != other->getTick()) {
+		return mTick < other->getTick() ? -1 : 1;
+	}
+	if (mDelta->getValue() != other->getDelta()) {
+		return mDelta->getValue() < other->getDelta() ? 1 : -1;
+	}
 
-	int value = MidiEvent::CompareTo(other);
-	if (value != 0)
-		return value;
+	// Check if same event type
+	if (!(other->getType() == MetaEvent::KEY_SIGNATURE)) {
+		return 1;
+	}
 
 	KeySignature * o = static_cast<KeySignature*>(other);
 	if (mKey != o->mKey) {

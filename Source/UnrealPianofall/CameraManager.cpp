@@ -1,3 +1,4 @@
+/*
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "CameraManager.h"
@@ -187,3 +188,4 @@ void ACameraManager::Tick(float DeltaTime)
 	}
 }
 
+*/

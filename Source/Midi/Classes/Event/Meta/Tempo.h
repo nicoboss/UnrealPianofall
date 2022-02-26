@@ -9,7 +9,7 @@
  * Tempo Meta Event
  * A event that 'sets the tempo of a MIDI sequence in terms of microseconds per quarter note.
  */
-class MIDI_API Tempo : public MetaEvent
+class Tempo : public MetaEvent
 {
 	int mMPQN;
 	float mBPM;
@@ -31,8 +31,8 @@ protected:
 	int getEventSize();
 
 public:
-	void writeToFile(FMemoryWriter & output);
+	void writeToFile(ostream & output);
 
-	static Tempo * parseTempo(long tick, long delta, FBufferReader & input);
-	int CompareTo(MidiEvent *other);
+	static MetaEvent * parseTempo(long tick, long delta, MetaEventData& info);
+	int compareTo(MidiEvent *other);
 };

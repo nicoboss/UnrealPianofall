@@ -11,7 +11,7 @@
 #include "BlockGenerator.generated.h"
 
 UCLASS()
-class UNREALPIANOFALLLIGHT_API ABlockGenerator : public AActor
+class UNREALPIANOFALL_API ABlockGenerator : public AActor
 {
 	GENERATED_BODY()
 
@@ -31,11 +31,11 @@ public:
 	uint32 startframe = 0;
 	float block_x = 0.0f;
 	float block_y = 0.0;
-	float block_z = 20000.0f;
+	float block_z = 5000.0f;
 	FVector blockscale = FVector(1.0f);
 	float spawndist_x = 100.0f;
 	float spawndist_y = 100.0f;
-	bool midi_out_enabled = false;
+	bool midi_out_enabled = true;
 	bool midi_out_off_enabled = false;
 	bool capture_enabled = false;
 	bool wait_for_load = true;
@@ -56,6 +56,9 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	// Called when the game ends or when destroyed
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	// Called every frame

@@ -1,13 +1,13 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "Tempo.h"
 
 #include "../../Util/MidiUtil.h"
+#include "GenericMetaEvent.h"
 
 const float Tempo::DEFAULT_BPM = 120.0f;
-const int Tempo::DEFAULT_MPQN = 60000000 / DEFAULT_BPM;
+const int Tempo::DEFAULT_MPQN = (int)(60000000 / DEFAULT_BPM);
 
 Tempo::Tempo() 
 	: MetaEvent(0, 0, MetaEvent::TEMPO, new VariableLengthInt(3))
@@ -41,30 +41,38 @@ int Tempo::getEventSize() {
 	return 6;
 }
 
-void Tempo::writeToFile(FMemoryWriter & output) {
+void Tempo::writeToFile(ostream & output) {
 	MetaEvent::writeToFile(output);
 
-	int size = getEventSize() - 3;
-	output.Serialize(&size, 1);
-	output.Serialize(MidiUtil::intToBytes(mMPQN, 3), 3);
+	output.put((char)3); // size
+	output.write(MidiUtil::intToBytes(mMPQN, 3), 3);
 }
 
-Tempo * Tempo::parseTempo(long tick, long delta, FBufferReader & input) {
+MetaEvent * Tempo::parseTempo(long tick, long delta, MetaEventData& info) {
+	// Check if valid Event
+	if (info.length->getValue() != 3)
+	{
+		return new GenericMetaEvent(tick, delta, info);
+	}
 
-	input.Seek(input.Tell() + 1);		// Size = 3;;
-
-	char buffer[3] = { 0 };
-	input.Serialize(buffer, 3);
-	int mpqn = MidiUtil::bytesToInt(buffer, 0, 3);
+	int mpqn = MidiUtil::bytesToInt(info.data, 0, 3);
 
 	return new Tempo(tick, delta, mpqn);
 }
 
-int Tempo::CompareTo(MidiEvent *other) {
+int Tempo::compareTo(MidiEvent *other) {
+	// Compare time
+	if (mTick != other->getTick()) {
+		return mTick < other->getTick() ? -1 : 1;
+	}
+	if (mDelta->getValue() != other->getDelta()) {
+		return mDelta->getValue() < other->getDelta() ? 1 : -1;
+	}
 
-	int checker = MidiEvent::CompareTo(other);
-	if (checker != 0)
-		return checker;
+	// Check if same event type
+	if (!(other->getType() == MetaEvent::TEMPO)) {
+		return 1;
+	}
 
 	Tempo * o = static_cast<Tempo*>(other);
 

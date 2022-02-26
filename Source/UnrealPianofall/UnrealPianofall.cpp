@@ -1,6 +1,6 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MIT Licensed, Nico Bosshard 2022
 
-#include "UnrealPianofallLight.h"
+#include "UnrealPianofall.h"
 #include "Modules/ModuleManager.h"
 
-IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, UnrealPianofallLight, "UnrealPianofallLight" );
+IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, UnrealPianofall, "UnrealPianofall" );

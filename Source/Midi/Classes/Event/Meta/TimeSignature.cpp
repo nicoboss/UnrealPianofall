@@ -1,8 +1,10 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "TimeSignature.h"
+#include <math.h>
+
+#include "GenericMetaEvent.h"
 
 TimeSignature::TimeSignature() 
 	: MetaEvent(0, 0, MetaEvent::TIME_SIGNATURE, new VariableLengthInt(4))
@@ -44,26 +46,27 @@ int TimeSignature::getEventSize() {
 	return 7;
 }
 
-void TimeSignature::writeToFile(FMemoryWriter & output) {
+void TimeSignature::writeToFile(ostream & output) {
 	MetaEvent::writeToFile(output);
 
-	int size = getEventSize() - 3;
-	output.Serialize(&size, 1);
-	output.Serialize(&mNumerator, 1);
-	output.Serialize(&mDenominator, 1);
-	output.Serialize(&mMeter, 1);
-	output.Serialize(&mDivision, 1);
+	output.put((char)4); // size
+	output.put((char)mNumerator);
+	output.put((char)mDenominator);
+	output.put((char)mMeter);
+	output.put((char)mDivision);
 }
 
-TimeSignature * TimeSignature::parseTimeSignature(long tick, long delta, FBufferReader & input) {
+MetaEvent * TimeSignature::parseTimeSignature(long tick, long delta, MetaEventData& info) {
+	// Check if valid Event
+	if (info.length->getValue() != 4)
+	{
+		return new GenericMetaEvent(tick, delta, info);
+	}
 
-	input.Seek(input.Tell() + 1);		// Size = 4
-
-	int num = 0, den = 0, met = 0, fps = 0;
-	input.Serialize(&num, 1);
-	input.Serialize(&den, 1);
-	input.Serialize(&met, 1);
-	input.Serialize(&fps, 1);
+	int num = info.data[0];
+	int den = info.data[1];
+	int met = info.data[2];
+	int fps = info.data[3];
 
 	den = (int)pow(2, den);
 
@@ -86,11 +89,19 @@ int TimeSignature::log2(int den) {
 	return 0;
 }
 
-int TimeSignature::CompareTo(MidiEvent *other) {
+int TimeSignature::compareTo(MidiEvent *other) {
+	// Compare time
+	if (mTick != other->getTick()) {
+		return mTick < other->getTick() ? -1 : 1;
+	}
+	if (mDelta->getValue() != other->getDelta()) {
+		return mDelta->getValue() < other->getDelta() ? 1 : -1;
+	}
 
-	int value = MidiEvent::CompareTo(other);
-	if (value != 0)
-		return value;
+	// Check if same event type
+	if (!(other->getType() == MetaEvent::TIME_SIGNATURE)) {
+		return 1;
+	}
 
 	TimeSignature * o = static_cast<TimeSignature*>(other);
 
@@ -103,8 +114,8 @@ int TimeSignature::CompareTo(MidiEvent *other) {
 	return 0;
 }
 
-string TimeSignature::ToString() {
+string TimeSignature::toString() {
 	std::stringstream ss;
-	ss << MetaEvent::ToString() << " " << mNumerator << "/" << getRealDenominator();
+	ss << MetaEvent::toString() << " " << mNumerator << "/" << getRealDenominator();
 	return ss.str();
 }

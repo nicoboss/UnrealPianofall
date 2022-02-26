@@ -1,3 +1,4 @@
+/*
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
@@ -7,7 +8,7 @@
 #include "CameraManager.generated.h"
 
 UCLASS()
-class UNREALPIANOFALLLIGHT_API ACameraManager : public AActor
+class UNREALPIANOFALL_API ACameraManager : public AActor
 {
 	GENERATED_BODY()
 	
@@ -47,3 +48,5 @@ public:
 	
 	
 };
+
+*/

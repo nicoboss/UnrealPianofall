@@ -1,10 +1,9 @@
-// RtMidi : Copyright (c) 2003-2016 Gary P. Scavone
+// Credit -> Scott Bishel
 
-#include "MidiInterfacePrivatePCH.h"
 #include "MidiInterfaceComponent.h"
+#include "MidiInterfacePrivatePCH.h"
 
 #include <vector>
-
 
 void mycallback(double deltatime, std::vector< unsigned char > *message, void *userData)
 {
@@ -26,7 +25,6 @@ UMidiInterfaceComponent::UMidiInterfaceComponent()
 	
 	PrimaryComponentTick.bCanEverTick = queueCallbacks;
 	inSysEx = false;
-	
 }
 
 // Called when the game starts or when spawned
@@ -67,20 +65,40 @@ void UMidiInterfaceComponent::handleCallback(double deltatime, std::vector< unsi
 		// system message (top four bits 1111)
 		if (type == 0xF)
 		{
-			// sysex start?
-			if(channelOrSubtype == 0) {
+			switch (channelOrSubtype) {
+			case 0: // Sysex start?
 				startSysEx();
-				continue;
-			}
-			// sysex end?
-			else if(channelOrSubtype == 7) {
+				break;
+			case 7: // Sysex end?
 				stopSysEx(deltatime);
-				continue;
-			}
-			// MIDI Clock Events
-			else {
+				break;
+
+			// system common
+			case 1: // Quarter Frame (MTC)
+			case 2: // song position pointer
+			case 3: // Song Select
+			case 6: // Tune Request
+
+			// system realtime
+			case 8: // Clock
+			case 10: // Start
+			case 11: // Continue
+			case 12: // Stop
+			case 14: // Active Sensing
+			case 15: // Reset
+			{
+				// ignore data if not using event
+				if (!OnReceiveClockEvent.IsBound()) {
+					if (channelOrSubtype == 2)
+						i += 2;
+					else if (channelOrSubtype == 1 || channelOrSubtype == 3) {
+						i++;
+					}
+					break;
+				}
+				
 				FMidiClockEvent Event;
-				Event.Type = (EMidiClockTypeEnum)channelOrSubtype;
+				Event.Type = (EMidiClockTypeEnum)(id);
 
 				// song position pointer
 				if (channelOrSubtype == 2) {
@@ -92,7 +110,15 @@ void UMidiInterfaceComponent::handleCallback(double deltatime, std::vector< unsi
 					Event.Data = Event.Data << 7;
 					Event.Data += lsb;
 				}
+				
+				// Quarter Frame or Song Select
+				else if (channelOrSubtype == 1 || channelOrSubtype == 3) {
+					Event.Data = message->at(i++);
+				}
+
 				OnReceiveClockEvent.Broadcast(Event, deltatime);
+				break;
+			}
 			}
 		}
 		// if in the middle of sysex, pass it on to sysex buffer
@@ -112,6 +138,11 @@ void UMidiInterfaceComponent::handleCallback(double deltatime, std::vector< unsi
 			// check for program change or CHANNEL_AFTERTOUCH
 			if (type != 0xC && type != 0xD) {
 				Event.Data2 = message->at(i++) & 0XFF;
+
+				// change Note On with Velocity 0 to Note Off
+				if (type == 0x9 && Event.Data2 == 0) {
+					Event.Type = (EMidiTypeEnum)(0X8);
+				}
 			}
 
 			OnReceiveEvent.Broadcast(Event, deltatime);
@@ -119,11 +150,11 @@ void UMidiInterfaceComponent::handleCallback(double deltatime, std::vector< unsi
 	}
 }
 
-bool UMidiInterfaceComponent::OpenInput(uint8 port)
+bool UMidiInterfaceComponent::OpenInput(uint8 port, bool ignoreSysEx, bool ignoreTiming)
 {
 	// Check available ports.
 	unsigned int nPorts = midiIn.getPortCount();
-	if (nPorts == 0 || port >= nPorts) {
+	if (nPorts < 1 || port >= nPorts) {
 		UE_LOG(LogTemp, Display, TEXT("No ports available!"));
 		return false;
 	}
@@ -141,16 +172,16 @@ bool UMidiInterfaceComponent::OpenInput(uint8 port)
 	midiIn.setCallback(&mycallback, this);
 
 	// Don't ignore sysex, timing, or active sensing messages.
-	midiIn.ignoreTypes(false, false, true);
+	midiIn.ignoreTypes(ignoreSysEx, ignoreTiming, true);
 
-	return true;
+	return midiIn.isPortOpen();
 }
 
 bool UMidiInterfaceComponent::OpenOutput(uint8 port)
 {
 	// Check available ports.
 	unsigned int nPorts = midiOut.getPortCount();
-	if (nPorts == 0 || port >= nPorts) {
+	if (nPorts < 1 || port >= nPorts) {
 		UE_LOG(LogTemp, Display, TEXT("No ports available!"));
 		return false;
 	}
@@ -162,7 +193,7 @@ bool UMidiInterfaceComponent::OpenOutput(uint8 port)
 
 	midiOut.openPort(port);
 
-	return true;
+	return midiOut.isPortOpen();
 }
 
 void UMidiInterfaceComponent::CloseInput()
@@ -177,26 +208,19 @@ void UMidiInterfaceComponent::CloseOutput()
 
 void UMidiInterfaceComponent::Send(const FMidiEvent& Event)
 {
-	std::vector<uint8> msg;
 	uint8 status = ((uint8)Event.Type << 4) | Event.Channel;
-	msg.push_back(status);
-	msg.push_back(Event.Data1);
+	uint8 data[3] = { status, Event.Data1, Event.Data2 };
+
 	// check for program change or CHANNEL_AFTERTOUCH
 	if (Event.Type != EMidiTypeEnum::MTE_PROGRAM_CHANGE && Event.Type != EMidiTypeEnum::MTE_CHANNEL_AFTERTOUCH) {
-		msg.push_back(Event.Data2);
+		midiOut.sendMessage(&data[0], 3);
 	}
-	midiOut.sendMessage(&msg);
+	else
+		midiOut.sendMessage(&data[0], 2);
 }
-void UMidiInterfaceComponent::SendRaw(const TArray<uint8>& Data)
+void UMidiInterfaceComponent::SendRaw(const TArray<uint8>& Data) 
 {
-	std::vector<uint8> msg;
-
-	for (auto& data : Data)
-	{
-		msg.push_back(data);
-	}
-	
-	midiOut.sendMessage(&msg);
+	midiOut.sendMessage(Data.GetData(), Data.Num());
 }
 void UMidiInterfaceComponent::startSysEx()
 {
@@ -225,3 +249,4 @@ void UMidiInterfaceComponent::appendSysEx(int data)
 {
 	sysExArray.Add(data);
 }
+

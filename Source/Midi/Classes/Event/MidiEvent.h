@@ -5,13 +5,12 @@
 
 #include <iostream>
 #include "../Util/VariableLengthInt.h"
-#include <memory>
 
 /**
  * abstract base class for midi events
  * A event that 'is a piece of data sent to a MIDI device to prompt it to do something at a certain time.'
  */
-class MIDI_API MidiEvent
+class MidiEvent
 {
 protected:
 	// MidiEvent Class
@@ -39,7 +38,7 @@ public:
 
 	virtual bool requiresStatusByte(MidiEvent * prevEvent);
 
-	virtual void writeToFile(FMemoryWriter & output, bool writeType);
+	virtual void writeToFile(ostream & output, bool writeType);
 
 private:
 	static int sId;
@@ -47,13 +46,20 @@ private:
 	static int sChannel;
 
 public:
-	static MidiEvent * parseEvent(long tick, long delta, FBufferReader & input);
+	static MidiEvent * parseEvent(long tick, long delta, istream & input);
 
-	virtual int CompareTo(MidiEvent *other);
+	/* Compare MIDI events
+	*  0:	Current event is the same as Other
+	*  -1:	Current event is less then Other
+	*  1:	Current event is greater then other
+	*/
+	virtual int compareTo(MidiEvent *other) = 0;
 
 private:
 	static bool verifyIdentifier(int id);
 
+	string getMidiClassName(int type);
+
 public:
-	virtual string ToString();
+	virtual string toString();
 };

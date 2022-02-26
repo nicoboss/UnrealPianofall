@@ -16,19 +16,19 @@
 #include "Block.h"
 
 //Async & Substepping also in order to not let PhyX crash while working with too many tasks
-#define MIDI_PATH "A:/Music/BA_Rare_ASDF_Mode_rev_1.1.mid"
-#define LIMIT_VALUE 1
+#define MIDI_PATH "C:/Users/Administrator/Music/Alan_Walker_-_Spectre_Black_Audio.mid"
+#define LIMIT_VALUE 5000
 #define REDUCTION_VALUE 1600
-#define UNREALPIANOFALL_VERSION "v1.0.4 (15.09.2017)"
+#define UNREALPIANOFALL_VERSION "v2.0.0 (25.02.2022)"
 #if WITH_EDITOR == 1
-#define MIDI_PATH "A:/Music/BA_Rare_ASDF_Mode_rev_1.1.mid"
-#define LIMIT_VALUE 1
+#define MIDI_PATH "C:/Users/Administrator/Music/Alan_Walker_-_Spectre_Black_Audio.mid"
+#define LIMIT_VALUE 5000
 #define REDUCTION_VALUE 1600
-#define MIDI_OUT 0
+#define MIDI_OUT 1
 #else
 #define MIDI_OUT 1
 #endif
-#define LOG_PATH "A:/Music/midi_data.csv"
+#define LOG_PATH "C:/Users/Administrator/Music/midi_data.csv"
 
 #ifdef LOG_PATH
 #define LOG_NOTES 0
@@ -39,7 +39,7 @@
 #endif
 
 #if MIDI_OUT == 1
-#include "../MidiInterface/Classes/RtMidi.h"
+#include "MidiInterface/Classes/RtMidi.cpp"
 #include <thread>
 #endif
 
@@ -59,7 +59,7 @@ ABlockGenerator::ABlockGenerator()
 
 	const TCHAR *blocktypes[] = {
 		TEXT("/Engine/EditorMeshes/EditorCube.EditorCube"),
-		TEXT("/Game/UnrealPianofallLight/Blocks/Key") };
+		TEXT("/Game/UnrealPianofall/Blocks/Key") };
 	uint8 arg_blocktype;
 	uint8 blocktype = 1;
 	if (FParse::Value(FCommandLine::Get(), TEXT("block"), arg_blocktype)) {
@@ -70,8 +70,8 @@ ABlockGenerator::ABlockGenerator()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> FoundMesh(blocktypes[blocktype]);
 
 	const TCHAR *materialtypes[] = {
-		TEXT("/Game/UnrealPianofallLight/Materials/M_Advanced_Block"),
-		TEXT("/Game/UnrealPianofallLight/Materials/M_Basic_Block") };
+		TEXT("/Game/UnrealPianofall/Materials/M_Advanced_Block"),
+		TEXT("/Game/UnrealPianofall/Materials/M_Basic_Block") };
 	uint8 arg_materialtype;
 	uint8 materialtype = 0;
 	if (FParse::Value(FCommandLine::Get(), TEXT("material"), arg_materialtype)) {
@@ -1019,7 +1019,7 @@ void ABlockGenerator::Tick(float DeltaTime)
 				blocks.front()->Destroy();
 				blocks.pop(); //Last Crashpint
 			} while (blocks.size() > blocklimit);
-			world->ForceGarbageCollection(true);
+			GEngine->ForceGarbageCollection(true);
 		}
 
 
@@ -1055,4 +1055,11 @@ void ABlockGenerator::Tick(float DeltaTime)
 	}
 
 	++FrameNr;
+}
+
+void ABlockGenerator::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UE_LOG(LogTemp, Log, TEXT("EndPlay"));
+	midiout->closePort();
+	midiout->~RtMidiOut();
 }

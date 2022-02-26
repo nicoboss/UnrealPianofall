@@ -1,8 +1,8 @@
-// Copyright -> Scott Bishel
+// Credit -> Scott Bishel
 
 #pragma once
 
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
 
 
