@@ -10,6 +10,8 @@ namespace UnrealBuildTool.Rules
     public MidiAsset(TargetInfo Target)
 #endif
 		{
+            PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+
             PublicDependencyModuleNames.AddRange(
                 new string[] {
 					"Core",
@@ -17,11 +19,12 @@ namespace UnrealBuildTool.Rules
                 }
             );
 
-			PrivateIncludePaths.AddRange(
+
+            PrivateIncludePaths.AddRange(
 				new string[] {
-					"Runtime/MidiAsset/Private",
-				}
+                }
 			);
-		}
+			PublicDefinitions.Add("__STDC_WANT_SECURE_LIB__=1"); // ignore warning
+        }
 	}
 }

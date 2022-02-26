@@ -4,11 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Engine/DestructibleMesh.h"
+//#include "Engine/DestructibleMesh.h"
 #include "Block.generated.h"
 
 UCLASS()
-class KITEDEMO_API ABlock : public AActor
+class UNREALPIANOFALL_API ABlock : public AActor
 {
 	GENERATED_BODY()
 

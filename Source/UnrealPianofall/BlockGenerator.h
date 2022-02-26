@@ -11,7 +11,7 @@
 #include "BlockGenerator.generated.h"
 
 UCLASS()
-class KITEDEMO_API ABlockGenerator : public AActor
+class UNREALPIANOFALL_API ABlockGenerator : public AActor
 {
 	GENERATED_BODY()
 
@@ -22,29 +22,33 @@ public:
 	FString midi_fileName;
 	FString screenshot_path_savedir = "";
 	uint32 blocklimit = 6000;
-	uint32 spawnreduction = 4;
+	uint16 spawnreduction = 4;
+	bool highres = false;
+	float capture_resolution = 1.0f;
+	FVector2D ViewportSize;
+	uint32 screenshot_x;
+	uint32 screenshot_y;
 	uint32 startframe = 0;
-	float block_x = 90600.0f;
-	float block_y = 645000.0;
-	float block_z = -110000.0f;
+	float block_x = 0.0f;
+	float block_y = 0.0;
+	float block_z = 5000.0f;
 	FVector blockscale = FVector(1.0f);
 	float spawndist_x = 100.0f;
 	float spawndist_y = 100.0f;
-	bool midi_out_enabled = false;
+	bool midi_out_enabled = true;
 	bool midi_out_off_enabled = false;
 	bool capture_enabled = false;
 	bool wait_for_load = true;
 	uint64 PPQ_overwrite = 0;
 	//Note: Default value sould be equal for the CameraManager
-	uint32 frames_wait_for_load = 420; //0;
+	uint32 frames_wait_for_load = 60; //0;
 	std::vector<std::array<uint32, 128>> spawnpos;
 	std::vector<std::array<uint32, 128>> stoppos;
-	//std::queue<AActor*> blocks;
-	AActor* *blocks;
-	uint32 blocks_index = 0;
-	bool blocks_overwrite_flag = false;
+	std::queue<AActor*> blocks;
 	FLinearColor rainbow[128];
-	uint32 FrameNr = 0;
+	UMaterialInstanceDynamic* DynMaterial[128];
+	//Signed so that it can be compared with (spawnpos.size() - 2) which can be below zero
+	int64 FrameNr = 0;
 	UStaticMesh* Block_Mesh;
 	//UDestructibleMesh* Block_DM;
 	UMaterial* Block_Material;
@@ -52,6 +56,9 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	// Called when the game ends or when destroyed
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	// Called every frame

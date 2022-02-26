@@ -10,7 +10,7 @@ using namespace std;
 /**
  * Abstract Channel MIDI Event
  */
-class MIDI_API ChannelEvent : public MidiEvent
+class ChannelEvent : public MidiEvent
 {
 
 protected:
@@ -34,12 +34,12 @@ protected:
 	int getEventSize();
 
 public:
-	int CompareTo(MidiEvent *other);
+	int compareTo(MidiEvent *other);
 	bool requiresStatusByte(MidiEvent * prevEvent);
 
-	void writeToFile(FMemoryWriter & output, bool writeType);
+	void writeToFile(ostream & output, bool writeType);
 
-	static ChannelEvent * parseChannelEvent(long tick, long delta, int type, int channel, FBufferReader & input);
+	static ChannelEvent * parseChannelEvent(long tick, long delta, int type, int channel, istream & input);
 public:
 	static const int NOTE_OFF = 0x8;
 	static const int NOTE_ON = 0x9;
@@ -48,4 +48,7 @@ public:
 	static const int PROGRAM_CHANGE = 0xC;
 	static const int CHANNEL_AFTERTOUCH = 0xD;
 	static const int PITCH_BEND = 0xE;
+
+private:
+	static int getOrder(int type);
 };

@@ -1,7 +1,6 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "ChannelEvent.h"
 
 #include "ChannelAftertouch.h"
@@ -67,18 +66,26 @@ int ChannelEvent::getEventSize() {
 	}
 }
 
-int ChannelEvent::CompareTo(MidiEvent *other) {
+int ChannelEvent::compareTo(MidiEvent *other) {
+	// Compare time
+	if (mTick != other->getTick()) {
+		return mTick < other->getTick() ? -1 : 1;
+	}
+	if (mDelta->getValue() != other->getDelta()) {
+		return mDelta->getValue() < other->getDelta() ? 1 : -1;
+	}
 
-	int value = MidiEvent::CompareTo(other);
-	if (value != 0)
-		return value;
+	// check if other event is [not] a ChannelEvent
+	if (!(other->getType() >= NOTE_OFF && other->getType() <= PITCH_BEND)) {
+		return 1;
+	}
 
+	// Event should be in the Channel Event category
 	ChannelEvent * o = static_cast<ChannelEvent*>(other);
 	if (mType != o->getType()) {
 
-		int order1 = mType - PROGRAM_CHANGE;
-		int order2 = o->getType() - PROGRAM_CHANGE;
-
+		int order1 = getOrder(mType);
+		int order2 = getOrder(o->getType());
 		return order1 < order2 ? -1 : 1;
 	}
 	if (mValue1 != o->mValue1) {
@@ -107,28 +114,30 @@ bool ChannelEvent::requiresStatusByte(MidiEvent * prevEvent) {
 	return !(mType == ce->getType() && mChannel == ce->getChannel());
 }
 
-void ChannelEvent::writeToFile(FMemoryWriter & output, bool writeType){
+void ChannelEvent::writeToFile(ostream & output, bool writeType){
 	MidiEvent::writeToFile(output, writeType);
 
 	if (writeType) {
 		int typeChannel = (mType << 4) + mChannel;
-		output.Serialize(&typeChannel, 1);
+		output.put((char)typeChannel);
 	}
 
-	output.Serialize(&mValue1, 1);
+	output.put((char)mValue1);
 	if (mType != PROGRAM_CHANGE && mType != CHANNEL_AFTERTOUCH) {
-		output.Serialize(&mValue2, 1);
+		output.put((char)mValue2);
 	}
 }
-ChannelEvent * ChannelEvent::parseChannelEvent(long tick, long delta, int type, int channel, FBufferReader & input) {
+ChannelEvent * ChannelEvent::parseChannelEvent(long tick, long delta, int type, int channel, istream & input) {
+	// Get Data1 value
+	int val1 = input.get();
 
-	int val1 = 0;
-	input.Serialize(&val1, 1);
+	// Get Data2 value if its not a PROGRAM_CHANGE or CHANNEL_AFTERTOUCH event
 	int val2 = 0;
 	if (type != PROGRAM_CHANGE && type != CHANNEL_AFTERTOUCH) {
-		input.Serialize(&val2, 1);
+		val2 = input.get();
 	}
 
+	// Create event
 	switch (type) {
 	case NOTE_OFF:
 		return new NoteOff(tick, delta, channel, val1, val2);
@@ -147,4 +156,24 @@ ChannelEvent * ChannelEvent::parseChannelEvent(long tick, long delta, int type, 
 	}
 	
 	return NULL;
+}
+
+int ChannelEvent::getOrder(int type) {
+	switch (type) {
+	case PROGRAM_CHANGE:
+		return 0;
+	case CONTROLLER:
+		return 1;
+	case NOTE_ON:
+		return 2;
+	case NOTE_OFF:
+		return 3;
+	case NOTE_AFTERTOUCH:
+		return 4;
+	case CHANNEL_AFTERTOUCH:
+		return 5;
+	case PITCH_BEND:
+		return 6;
+	}
+	return -1;
 }

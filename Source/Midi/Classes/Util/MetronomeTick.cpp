@@ -1,13 +1,16 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "MetronomeTick.h"
 
+#include <math.h>
 
 MetronomeTick::MetronomeTick(TimeSignature* sig, int resolution) 
 	: MidiEvent(0, 0), mMetronomeProgress(0.0)
 {
+	// custom type to represent class
+	mType = MetronomeTick::TYPE;
+
 	mResolution = resolution;
 
 	setTimeSignature(sig);
@@ -28,7 +31,7 @@ bool MetronomeTick::update(double ticksElapsed)
 
 	if (mMetronomeProgress >= mMetronomeFrequency)
 	{
-		mMetronomeProgress = FMath::Fmod(mMetronomeProgress, mMetronomeFrequency);
+		mMetronomeProgress = fmod(mMetronomeProgress, mMetronomeFrequency);
 
 		mCurrentBeat = (mCurrentBeat + 1) % mSignature->getNumerator();
 		if (mCurrentBeat == 0)
@@ -70,15 +73,17 @@ int MetronomeTick::getMeasure()
 	return mCurrentMeasure;
 }
 
-std::string MetronomeTick::ToString()
+std::string MetronomeTick::toString()
 {
 	std::stringstream ss;
 	ss << "Metronome: " << mCurrentMeasure << "\t" << getBeatNumber();
 	return ss.str();
 }
 
-int MetronomeTick::CompareTo(MidiEvent* o)
+int MetronomeTick::compareTo(MidiEvent* o)
 {
+	if(o == NULL) // TODO ignore unreferenced formal parameter
+		return 0;
 	return 0;
 }
 

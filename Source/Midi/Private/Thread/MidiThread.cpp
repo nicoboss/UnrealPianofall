@@ -1,8 +1,10 @@
-// Copyright 2011 Alex Leffelman
-// Updated 2016 Scott Bishel
+// Credit -> Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "MidiThread.h"
+#include "MidiPrivatePCH.h"
+
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
 
 #include "Util/MidiProcessor.h"
 
@@ -12,14 +14,17 @@ bool FMidiProcessorWorker::IsFinished() const
 }
 
 //Constructor / Destructor
-FMidiProcessorWorker::FMidiProcessorWorker(MidiProcessor* IN_PC) 
+FMidiProcessorWorker::FMidiProcessorWorker(MidiProcessor* IN_PC, bool UseGameTime)
 	: ThePC(IN_PC)
 {
-	Thread = FRunnableThread::Create(this, TEXT("FMidiProcessorWorker"), 0, TPri_BelowNormal); //windows default = 8mb for thread, could specify more
+	this->isGameTime = UseGameTime;
+
+	Thread = FRunnableThread::Create(this, TEXT("FMidiProcessorWorker"), 0, EThreadPriority::TPri_BelowNormal); //windows default = 8mb for thread, could specify more
 }
 
 FMidiProcessorWorker::~FMidiProcessorWorker() {
-	delete Thread;
+	if(Thread)
+		delete Thread;
 	Thread = NULL;
 }
 
@@ -31,15 +36,19 @@ uint32 FMidiProcessorWorker::Run() {
 	if (!world)
 		return 0;
 
-	if(ThePC->isGameTime)
-		ThePC->setBeginTime(world->TimeSeconds * 1000.0f);
+	if (this->isGameTime) {
+		ThePC->start(world->TimeSeconds * 1000.0f);
+	}
+	else {
+		ThePC->start(FPlatformTime::Cycles());
+	}
 
 	while (!IsFinished())
 	{
-		if (ThePC->isGameTime)
+		if (isGameTime)
 			ThePC->update(world->TimeSeconds * 1000.0f);
 		else
-			ThePC->update();
+			ThePC->update(FPlatformTime::Cycles());
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		//prevent thread from using too many resources
 		FPlatformProcess::Sleep(0.008f);

@@ -1,4 +1,4 @@
-// Copyright -> Scott Bishel
+// Credit -> Scott Bishel
 
 using UnrealBuildTool;
 using System.IO;
@@ -11,23 +11,20 @@ public class Midi : ModuleRules
 #else
     public Midi(TargetInfo Target)
 #endif
-	{
-		
-		PublicIncludePaths.AddRange(
+    {
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+
+        PublicIncludePaths.AddRange(
 			new string[] {
-				"Midi/Public"
 			}
 			);
 				
-		
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				"Midi/Private",
                 "Midi/Classes",
             }
 			);
 			
-		
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
@@ -35,12 +32,12 @@ public class Midi : ModuleRules
 			}
 			);
 			
-		
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"CoreUObject", "Engine", "Slate", "SlateCore", "MidiAsset"
 			}
 			);
+		PublicDefinitions.Add("__STDC_WANT_SECURE_LIB__=1"); // ignore warning
     }
 }

@@ -1,7 +1,7 @@
-// Copyright -> Scott Bishel
+// Credit -> Scott Bishel
 
-#include "ProceduralAudioPrivatePCH.h"
 #include "SoundWaveProceduralTest.h"
+#include "ProceduralAudioPrivatePCH.h"
 
 USoundWaveProceduralTest::USoundWaveProceduralTest(const FObjectInitializer& PCIP)
 	: Super(PCIP)
@@ -61,7 +61,7 @@ void USoundWaveProceduralTest::GetAssetRegistryTags(TArray<FAssetRegistryTag>& O
 	check(false);
 }
 
-FByteBulkData* USoundWaveProceduralTest::GetCompressedData(FName Format)
+FByteBulkData* USoundWaveProceduralTest::GetCompressedData(FName Format, const FPlatformAudioCookOverrides* CompressionOverrides)
 {
 	return NULL;
 }

@@ -1,8 +1,8 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "MidiChannelPrefix.h"
+#include "GenericMetaEvent.h"
 
 MidiChannelPrefix::MidiChannelPrefix(long tick, long delta, int channel)
 	: MetaEvent(tick, delta, MetaEvent::MIDI_CHANNEL_PREFIX, new VariableLengthInt(4))
@@ -21,29 +21,38 @@ int MidiChannelPrefix::getEventSize() {
 	return 4;
 }
 
-void MidiChannelPrefix::writeToFile(FMemoryWriter & output) {
+void MidiChannelPrefix::writeToFile(ostream & output) {
 	MetaEvent::writeToFile(output);
 
-	int size = getEventSize() - 3;
-	output.Serialize(&size, 1);
-	output.Serialize(&mChannel, 1);
+	output.put((char)1); // size
+	output.put((char)mChannel);
 }
 
-MidiChannelPrefix * MidiChannelPrefix::parseMidiChannelPrefix(long tick, long delta, FBufferReader & input) {
+MetaEvent * MidiChannelPrefix::parseMidiChannelPrefix(long tick, long delta, MetaEventData& info) {
+	// Check if valid Event
+	if (info.length->getValue() != 1)
+	{
+		return new GenericMetaEvent(tick, delta, info);
+	}
 
-	input.Seek(input.Tell() + 1);		// Size = 1;
-
-	int channel = 0;
-	input.Serialize(&channel, 1);
+	int channel = info.data[0];
 
 	return new MidiChannelPrefix(tick, delta, channel);
 }
 
-int MidiChannelPrefix::CompareTo(MidiEvent *other) {
+int MidiChannelPrefix::compareTo(MidiEvent *other) {
+	// Compare time
+	if (mTick != other->getTick()) {
+		return mTick < other->getTick() ? -1 : 1;
+	}
+	if (mDelta->getValue() != other->getDelta()) {
+		return mDelta->getValue() < other->getDelta() ? 1 : -1;
+	}
 
-	int value = MidiEvent::CompareTo(other);
-	if (value != 0)
-		return value;
+	// Check if same event type
+	if (!(other->getType() == MetaEvent::MIDI_CHANNEL_PREFIX)) {
+		return 1;
+	}
 
 	MidiChannelPrefix * o = static_cast<MidiChannelPrefix*>(other);
 

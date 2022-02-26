@@ -1,7 +1,6 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "EndOfTrack.h"
 
 EndOfTrack::EndOfTrack(long tick, long delta)
@@ -13,14 +12,25 @@ int EndOfTrack::getEventSize() {
 	return 3;
 }
 
-void EndOfTrack::writeToFile(FMemoryWriter & output) {
+void EndOfTrack::writeToFile(ostream & output) {
 	MetaEvent::writeToFile(output);
 
-	int size = getEventSize() - 3;
-	output.Serialize(&size, 1);
+	output.put((char)0); //size
 }
 
-int EndOfTrack::CompareTo(MidiEvent *other) {
+int EndOfTrack::compareTo(MidiEvent *other) {
+	// Compare time
+	if (mTick != other->getTick()) {
+		return mTick < other->getTick() ? -1 : 1;
+	}
+	if (mDelta->getValue() != other->getDelta()) {
+		return mDelta->getValue() < other->getDelta() ? 1 : -1;
+	}
 
-	return MidiEvent::CompareTo(other);
+	// Check if same event type
+	if (!(other->getType() == MetaEvent::END_OF_TRACK)) {
+		return 1;
+	}
+
+	return 0;
 }

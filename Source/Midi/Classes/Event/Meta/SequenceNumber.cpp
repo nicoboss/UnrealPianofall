@@ -1,8 +1,8 @@
 // Copyright 2011 Alex Leffelman
 // Updated 2016 Scott Bishel
 
-#include "MidiPrivatePCH.h"
 #include "SequenceNumber.h"
+#include "GenericMetaEvent.h"
 
 SequenceNumber::SequenceNumber(long tick, long delta, int number)
 	: MetaEvent(tick, delta, MetaEvent::SEQUENCE_NUMBER, new VariableLengthInt(2))
@@ -20,34 +20,41 @@ int SequenceNumber::getSequenceNumber() {
 	return mNumber;
 }
 
-void SequenceNumber::writeToFile(FMemoryWriter& output) {
+void SequenceNumber::writeToFile(ostream& output) {
 	MetaEvent::writeToFile(output);
 
-	int size = getEventSize() - 3;
-	output.Serialize(&size, 1);
-	int high = getMostSignificantBits();
-	int low = getLeastSignificantBits();
-	output.Serialize(&high, 1);
-	output.Serialize(&low, 1);
+	output.put((char)2); // size
+	output.put((char)getMostSignificantBits()); // high byte
+	output.put((char)getLeastSignificantBits()); // low byte
 }
 
-SequenceNumber * SequenceNumber::parseSequenceNumber(long tick, long delta, FBufferReader & input) {
+MetaEvent* SequenceNumber::parseSequenceNumber(long tick, long delta, MetaEventData& info) {
+	// Check if valid Event
+	if (info.length->getValue() != 2)
+	{
+		return new GenericMetaEvent(tick, delta, info);
+	}
 
-	input.Seek(input.Tell() + 1);		// Size = 2;
-
-	int msb = 0, lsb = 0;
-	input.Serialize(&msb, 1);
-	input.Serialize(&lsb, 1);
+	int msb = info.data[0];
+	int lsb = info.data[1];
 	int number = (msb << 8) + lsb;
 
 	return new SequenceNumber(tick, delta, number);
 }
 
-int SequenceNumber::CompareTo(MidiEvent *other) {
+int SequenceNumber::compareTo(MidiEvent *other) {
+	// Compare time
+	if (mTick != other->getTick()) {
+		return mTick < other->getTick() ? -1 : 1;
+	}
+	if (mDelta->getValue() != other->getDelta()) {
+		return mDelta->getValue() < other->getDelta() ? 1 : -1;
+	}
 
-	int value = MidiEvent::CompareTo(other);
-	if (value != 0)
-		return value;
+	// Check if same event type
+	if (!(other->getType() == MetaEvent::SEQUENCE_NUMBER)) {
+		return 1;
+	}
 
 	SequenceNumber * o = static_cast<SequenceNumber*>(other);
 
