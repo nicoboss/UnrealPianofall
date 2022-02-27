@@ -43,11 +43,12 @@ public:
 	uint64 PPQ_overwrite = 0;
 	//Note: Default value sould be equal for the CameraManager
 	uint32 frames_wait_for_load = 60; //0;
-	std::vector<std::array<uint32, 128>> spawnpos;
+	std::vector<std::array<std::pair<uint32, uint32>, 128>> spawnpos;
 	std::vector<std::array<uint32, 128>> stoppos;
 	ABlock** blocks;
 	uint32 blocksPos = 0;
 	bool blocksFull = false;
+	std::array<uint32, 128> playCount;
 	FLinearColor rainbow[128];
 	UMaterialInstanceDynamic* DynMaterial[128];
 	//Signed so that it can be compared with (spawnpos.size() - 2) which can be below zero

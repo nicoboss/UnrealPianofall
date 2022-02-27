@@ -17,12 +17,12 @@
 
 //Async & Substepping also in order to not let PhyX crash while working with too many tasks
 #define MIDI_PATH "C:/Users/Administrator/Music/Alan_Walker_-_Spectre_Black_Audio.mid"
-#define LIMIT_VALUE 5000
+#define LIMIT_VALUE 1000
 #define REDUCTION_VALUE 1600
 #define UNREALPIANOFALL_VERSION "v2.0.0 (25.02.2022)"
 #if WITH_EDITOR == 1
 #define MIDI_PATH "C:/Users/Administrator/Music/Alan_Walker_-_Spectre_Black_Audio.mid"
-#define LIMIT_VALUE 5000
+#define LIMIT_VALUE 1000
 #define REDUCTION_VALUE 1600
 #define MIDI_OUT 1
 #else
@@ -401,23 +401,6 @@ void ABlockGenerator::BeginPlay()
 		midiout->sendMessage(&message);
 		//Needed for MIDI note events due to they are 3 byte long
 		message.push_back(0);
-
-		/*
-		// Note On: 144, 64, 90
-		message[0] = 0x90;
-		message[1] = 64;
-		message[2] = 90;
-		midiout->sendMessage(&message);
-		std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
-
-		// Note Off: 128, 64, 40
-		message[0] = 0x80;
-		message[1] = 64;
-		message[2] = 0;
-		midiout->sendMessage(&message);
-		std::this_thread::sleep_for(std::chrono::milliseconds(420)); //c++11
-		*/
-
 	}
 	#endif
 
@@ -433,6 +416,7 @@ void ABlockGenerator::BeginPlay()
 	uint64 tick = 0;
 	uint64 time_us = 0;
 	uint32 frame_nr = 0;
+	std::array<std::pair<uint32, uint32>, 128> zeroArrayPair = { std::make_pair(0, 0) };
 	std::array<uint32, 128> zeroArray = { 0 };
 	//zeroArray.fill(1);
 	//zeroArray.fill(10);
@@ -442,7 +426,7 @@ void ABlockGenerator::BeginPlay()
 	//zeroArray[95] = 15;
 	//zeroArray[127] = 20;
 
-	spawnpos.push_back(zeroArray);
+	spawnpos.push_back(zeroArrayPair);
 	stoppos.push_back(zeroArray);
 
 	uint32 deltatime_to_add;
@@ -648,7 +632,7 @@ void ABlockGenerator::BeginPlay()
 						time_us += (deltatime_to_add * usPQ) / PPQ;
 						frame_nr = floor(time_us * 0.00006);
 						while (spawnpos.size() <= frame_nr) {
-							spawnpos.push_back(zeroArray); //Copy testArray into spawnpos
+							spawnpos.push_back(zeroArrayPair); //Copy testArray into spawnpos
 							stoppos.push_back(zeroArray); //Copy testArray into spawnpos
 						}
 						deltatime_data_size = 0;
@@ -816,7 +800,10 @@ void ABlockGenerator::BeginPlay()
 							//}
 							if (buf[pos] > 0) {
 								//Note ON Event
-								spawnpos[frame_nr][Note_to_play_nr] += 1;
+								spawnpos[frame_nr][Note_to_play_nr].first += 1; //Amount
+								if (buf[pos] > spawnpos[frame_nr][Note_to_play_nr].second) {
+									spawnpos[frame_nr][Note_to_play_nr].second = buf[pos]; //Velocity = Volume
+								}
 							}
 							else {
 								//Note OFF Event
@@ -957,14 +944,14 @@ void ABlockGenerator::Tick(float DeltaTime)
 		SpawnInfo.Owner = this;
 
 		for (notenr = 0; notenr < 128; ++notenr) {
-			spawnnr = spawnpos[FrameNr][notenr];
+			spawnnr = spawnpos[FrameNr][notenr].first;
 			stopnr = stoppos[FrameNr][notenr];
-			if (spawnnr > spawnreduction) {
-				spawnnr = spawnreduction;
-			}
-			if (stopnr > spawnreduction) {
-				stopnr = spawnreduction;
-			}
+			//if (spawnnr > spawnreduction) {
+			//	spawnnr = spawnreduction;
+			//}
+			//if (stopnr > spawnreduction) {
+			//	stopnr = spawnreduction;
+			//}
 			if (spawnnr > 0) {
 				for (spawncount = 0; spawncount < spawnnr; ++spawncount) {
 					location = FVector((float)(block_x - (spawnnr - 1) * 50.0f + spawncount * spawndist_x), (float)(block_y + (notenr - 63.5f) * spawndist_y), block_z + (notenr / 1000.0f));
@@ -982,21 +969,29 @@ void ABlockGenerator::Tick(float DeltaTime)
 					}
 					#if MIDI_OUT == 1
 					if (midi_out_enabled == true) {
-						message[0] = 0x90;
-						message[1] = notenr;
-						message[2] = 0x64;
-						midiout->sendMessage(&message);
+						if (playCount[notenr] == 0) {
+							message[0] = 0x90;
+							message[1] = notenr;
+							message[2] = spawnpos[FrameNr][notenr].second;
+							midiout->sendMessage(&message);
+						}
+						++playCount[notenr];
+						//UE_LOG(LogTemp, Log, TEXT("playCount Start: %u"), playCount[notenr]);
 					}
 					#endif
 				}
 			}
 			#if MIDI_OUT == 1 
-			if (midi_out_off_enabled == true && stopnr > 0) {
+			if (stopnr > 0) {
 				for (stopcount = 0; stopcount < stopnr; ++stopcount) {
-					message[0] = 0x80;
-					message[1] = notenr;
-					message[2] = 0;
-					midiout->sendMessage(&message);
+					--playCount[notenr];
+					//UE_LOG(LogTemp, Log, TEXT("playCount Stop: %u"), playCount[notenr]);
+					if (midi_out_off_enabled == true && playCount[notenr] == 0) {
+						message[0] = 0x80;
+						message[1] = notenr;
+						message[2] = 0;
+						midiout->sendMessage(&message);
+					}
 				}
 			}
 			#endif
@@ -1030,8 +1025,6 @@ void ABlockGenerator::Tick(float DeltaTime)
 			//GetHighResScreenshotConfig().ResolutionMultiplier = capture_resolution; //Sets the res multiplier
 			//GetWorld()->GetGameViewport()->Viewport->TakeHighResScreenShot(); //Sets the flag in the viewport to take the high-res shot.
 		}
-
-
 	}
 
 	++FrameNr;
