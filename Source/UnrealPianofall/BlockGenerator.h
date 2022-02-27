@@ -15,7 +15,7 @@ UCLASS()
 class UNREALPIANOFALL_API ABlockGenerator : public AActor
 {
 	GENERATED_BODY()
-
+	
 public:
 	// Sets default values for this actor's properties
 	ABlockGenerator();
@@ -45,7 +45,9 @@ public:
 	uint32 frames_wait_for_load = 60; //0;
 	std::vector<std::array<uint32, 128>> spawnpos;
 	std::vector<std::array<uint32, 128>> stoppos;
-	std::queue<ABlock*> blocks;
+	ABlock** blocks;
+	uint32 blocksPos = 0;
+	bool blocksFull = false;
 	FLinearColor rainbow[128];
 	UMaterialInstanceDynamic* DynMaterial[128];
 	//Signed so that it can be compared with (spawnpos.size() - 2) which can be below zero

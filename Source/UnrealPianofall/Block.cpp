@@ -5,7 +5,7 @@
 #include "Engine.h"
 #include "Components/BoxComponent.h"
 #include <math.h>
-
+ 
 // Sets default values§
 ABlock::ABlock()
 {
@@ -25,7 +25,7 @@ void ABlock::BeginPlay()
 
 	FVector loc = this->GetActorLocation();
 	float newloc_z = floor(loc.Z);
-	NoteNr = (int32)((loc.Z - newloc_z)*1000.0);
+	NoteNr = (int32)((loc.Z - newloc_z) * 1000.0);
 	//UE_LOG(LogTemp, Log, TEXT("loc.Z %f => %u   newloc_z: %f"), loc.Z, NoteNr, newloc_z);
 	loc.Z = newloc_z;
 	this->SetActorLocation(loc);
