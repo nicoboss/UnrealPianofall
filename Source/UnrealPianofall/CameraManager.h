@@ -1,4 +1,3 @@
-/*
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
@@ -12,7 +11,7 @@ class UNREALPIANOFALL_API ACameraManager : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
+public:
 	// Sets default values for this actor's properties
 	ACameraManager();
 
@@ -41,12 +40,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	
-	
 };
-
-*/

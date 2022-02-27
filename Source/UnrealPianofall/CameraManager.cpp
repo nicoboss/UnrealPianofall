@@ -1,4 +1,3 @@
-/*
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "CameraManager.h"
@@ -12,7 +11,7 @@
 ACameraManager::ACameraManager()
 {
 	//this->Destroy();
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 }
 
@@ -23,7 +22,7 @@ void ACameraManager::BeginPlay()
 	//this->Destroy();
 
 	camera_fix = (FParse::Param(FCommandLine::Get(), TEXT("-fix")))
-					| (FParse::Param(FCommandLine::Get(), TEXT("fix")));
+		| (FParse::Param(FCommandLine::Get(), TEXT("fix")));
 
 	float arg_camera_speed;
 	if (FParse::Value(FCommandLine::Get(), TEXT("speed"), arg_camera_speed)) {
@@ -38,9 +37,9 @@ void ACameraManager::BeginPlay()
 	else {
 		camerapos_first_scene *= camera_speed;
 	}
-	
+
 	camera_no_repeat = (FParse::Param(FCommandLine::Get(), TEXT("-no-repeat")))
-					| (FParse::Param(FCommandLine::Get(), TEXT("no-repeat")));
+		| (FParse::Param(FCommandLine::Get(), TEXT("no-repeat")));
 
 
 	if (FParse::Param(FCommandLine::Get(), TEXT("-free"))
@@ -75,7 +74,7 @@ void ACameraManager::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 void ACameraManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-		
+
 	UWorld* world = GetWorld();
 	APlayerController* currentPlayerController = world->GetFirstPlayerController();
 
@@ -95,7 +94,8 @@ void ACameraManager::Tick(float DeltaTime)
 				camera_fix_rotator = PlayerPawn->GetActorRotation();
 			}
 			++camera_fix_framecount;
-		} else {
+		}
+		else {
 			PlayerPawn->TeleportTo(camera_fix_vector, camera_fix_rotator);
 		}
 		return;
@@ -109,7 +109,7 @@ void ACameraManager::Tick(float DeltaTime)
 	switch (scenenr) {
 	case 0: {
 		//Teleportion due to affect of opposite gravity
-		
+
 		FVector NewLoc = FVector(40000.0, 0.0, 32000.0);
 		FRotator NewRot = (centerposmid - NewLoc).Rotation();
 		PlayerPawn->SetActorLocation(NewLoc);
@@ -124,7 +124,7 @@ void ACameraManager::Tick(float DeltaTime)
 		break;
 	}
 	case 1: {
-		FRotator rotate = FRotator((camerapos / 10.0)-170, 0, 0);
+		FRotator rotate = FRotator((camerapos / 10.0) - 170, 0, 0);
 		FVector NewLoc = centerpos + rotate.RotateVector(centerpos - playerstartpos);
 		FRotator NewRot = (centerposdown - NewLoc).Rotation();
 		PlayerPawn->SetActorLocation(NewLoc);
@@ -171,21 +171,19 @@ void ACameraManager::Tick(float DeltaTime)
 		if (camerapos >= 600.0) {
 			camerapos = 0.0;
 			playerlastpos = NewLoc;
-			//FVector NewLoc = FVector(97886.914, 644859.750,-115223.320);
-			FVector NewLoc = FVector(0, 0, 2000);
-			FRotator NewRot = (centerposdown - NewLoc).Rotation();
+			NewLoc = FVector(0, 0, 2000);
+			NewRot = (centerposdown - NewLoc).Rotation();
 			PlayerPawn->TeleportTo(NewLoc, NewRot);
 			if (camera_no_repeat == false) {
 				scenenr = 1;
-			} else {
+			}
+			else {
 				++scenenr;
 				this->Destroy();
 			}
 		}
 		break;
 	}
-	
+
 	}
 }
-
-*/
