@@ -16,12 +16,12 @@
 #include "Block.h"
 
 //Async & Substepping also in order to not let PhyX crash while working with too many tasks
-#define MIDI_PATH "C:/Users/Administrator/Music/Alan_Walker_-_Spectre_Black_Audio.mid"
+#define MIDI_PATH "C:/Users/Administrator/Music/Alan_Walker_-_Spectre_Black_WIP1.mid"
 #define LIMIT_VALUE 1000
 #define REDUCTION_VALUE 1600
 #define UNREALPIANOFALL_VERSION "v2.0.0 (25.02.2022)"
 #if WITH_EDITOR == 1
-#define MIDI_PATH "C:/Users/Administrator/Music/Alan_Walker_-_Spectre_Black_Audio.mid"
+#define MIDI_PATH "C:/Users/Administrator/Music/Alan_Walker_-_Spectre_Black_WIP1.mid"
 #define LIMIT_VALUE 1000
 #define REDUCTION_VALUE 1600
 #define MIDI_OUT 1
@@ -109,7 +109,6 @@ ABlockGenerator::ABlockGenerator()
 		DynMaterial[i]->SetVectorParameterValue(FName("Color"), rainbow[i]);
 	}
 
-
 }
 
 
@@ -118,6 +117,11 @@ ABlockGenerator::ABlockGenerator()
 void ABlockGenerator::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//bEnableWorldBoundsChecks has to be set to false or the application will crash.
+	UWorld* MyWorld = GetWorld();
+	AWorldSettings* WorldSettings = MyWorld->GetWorldSettings(true);
+	WorldSettings->bEnableWorldBoundsChecks = false;
 
 	//File compatible with http://www.fourmilab.ch/webtools/midicsv/
 	//It's very usefull to test my MIDI pharser
@@ -958,10 +962,12 @@ void ABlockGenerator::Tick(float DeltaTime)
 					if (blocksFull) {
 						ABlock* blockActor = blocks[blocksPos++];
 						blockActor->SetActorLocationAndRotation(location, rotate, false, 0, ETeleportType::ResetPhysics);
-						blockActor->RefreshColor();
+						blockActor->SetNote(notenr, &rainbow[notenr]);
 					}
 					else {
-						blocks[blocksPos++] = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
+						ABlock* blockActor = world->SpawnActor<ABlock>(ABlock::StaticClass(), location, rotate, SpawnInfo);
+						blockActor->SetOwner(this);
+						blocks[blocksPos++] = blockActor;
 					}
 					if (blocksPos >= blocklimit) {
 						blocksPos = 0;

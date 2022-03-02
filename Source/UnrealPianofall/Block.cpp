@@ -40,19 +40,10 @@ void ABlock::BeginPlay()
 	MeshComp->SetMaterial(0, DynMaterial);
 }
 
-void ABlock::RefreshColor()
+void ABlock::SetNote(int32 note, FLinearColor* color)
 {
-	//Only defined AFTER the ABlock::ABlock() constructor!
-	ABlockGenerator* AOwner = (ABlockGenerator*)this->GetOwner();
-
-	FVector loc = this->GetActorLocation();
-	float newloc_z = floor(loc.Z);
-	NoteNr = (int32)((loc.Z - newloc_z) * 1000.0);
-	//UE_LOG(LogTemp, Log, TEXT("loc.Z %f => %u   newloc_z: %f"), loc.Z, NoteNr, newloc_z);
-	loc.Z = newloc_z;
-	this->SetActorLocation(loc);
-
-	DynMaterial->SetVectorParameterValue(FName("Color"), AOwner->rainbow[NoteNr]);
+	NoteNr = note;
+	DynMaterial->SetVectorParameterValue(FName("Color"), *color);
 }
 
 // Called every frame
@@ -63,4 +54,11 @@ void ABlock::RefreshColor()
 void ABlock::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+void ABlock::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	//This should NOT occure while rendering a MIDI or the game will crash!
+	//bEnableWorldBoundsChecks should be automatically set to false inside BlockGenerator.
+	UE_LOG(LogTemp, Log, TEXT("ABlock::EndPlay"));
 }

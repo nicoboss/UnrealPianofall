@@ -24,7 +24,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	virtual void RefreshColor();
+	virtual void SetNote(int32 note, FLinearColor*);
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	FString name;
 	int32 npos;
